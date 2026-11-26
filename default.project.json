@@ -1,0 +1,10 @@
+{
+  "name": "phimroblox",
+  "tree": {
+    "$className": "DataModel",
+    "ServerScriptService": { "Drama": { "$path": "src/server" } },
+    "StarterPlayer": {
+      "StarterPlayerScripts": { "Drama": { "$path": "src/client" } }
+    }
+  }
+}
