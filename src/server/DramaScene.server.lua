@@ -7,10 +7,25 @@ local cue = Instance.new("RemoteEvent")
 cue.Name = "DramaCue"
 cue.Parent = ReplicatedStorage
 
+------------------------------------------------------------------ CẤU HÌNH
+local CONFIG = {
+	Rain = true,              -- mưa + sấm chớp
+	-- Âm thanh: dán ID lấy từ Creator Store (Audio) vào đây. Để 0 = tắt.
+	MusicId = 0,              -- nhạc nền buồn (piano/sad)
+	RainSoundId = 0,          -- tiếng mưa loop
+	ThunderSoundId = 0,       -- tiếng sấm
+	MusicVolume = 0.4,
+	-- Trang phục: lấy avatar từ UserId Roblox. 0 = Minh dùng avatar của bạn, Lan dùng màu mặc định.
+	MinhUserId = 0,           -- 0 = lấy avatar người đang Play
+	LanUserId = 0,            -- điền UserId 1 tài khoản có avatar nữ để Lan có quần áo/tóc
+	Title = "MỘT LỜI CHƯA NÓI",
+}
+
 -- Animation mặc định công khai của Roblox (R15)
 local ANIM = {
 	idle = "rbxassetid://507766388",
 	walk = "rbxassetid://507777826",
+	wave = "rbxassetid://507770239",
 }
 
 ------------------------------------------------------------------ BỐI CẢNH
@@ -30,11 +45,23 @@ end
 local ORIGIN = Vector3.new(0, 0, -200) -- xa điểm spawn để không vướng
 local function at(x, y, z) return ORIGIN + Vector3.new(x, y, z) end
 
+local rng0 = Random.new(3)
 -- mặt đường + vỉa hè
 part({ Name = "Road", Size = Vector3.new(60, 1, 20), Position = at(0, -0.5, 8),
 	Material = Enum.Material.Asphalt, Color = Color3.fromRGB(45, 45, 50) })
 part({ Name = "Sidewalk", Size = Vector3.new(60, 1.4, 12), Position = at(0, -0.3, -8),
 	Material = Enum.Material.Concrete, Color = Color3.fromRGB(150, 145, 140) })
+
+if CONFIG.Rain then
+	-- vũng nước phản chiếu ánh đèn
+	for i = 1, 8 do
+		local w = rng0:NextNumber(2, 5)
+		part({ Name = "Puddle", Size = Vector3.new(w, 0.05, w * 0.6), CanCollide = false,
+			Position = at(rng0:NextNumber(-25, 25), 0.03, rng0:NextNumber(2, 14)),
+			Material = Enum.Material.Glass, Color = Color3.fromRGB(30, 35, 45),
+			Reflectance = 0.35, Transparency = 0.2 })
+	end
+end
 
 -- ghế đá
 part({ Name = "BenchSeat", Size = Vector3.new(7, 0.5, 2), Position = at(0, 1.8, -10),
@@ -72,12 +99,24 @@ for i = -3, 3 do
 end
 
 ------------------------------------------------------------------ DIỄN VIÊN
-local function makeActor(name, shirt, pants, cf)
-	local desc = Instance.new("HumanoidDescription")
+local function makeActor(name, shirt, pants, cf, userId)
+	local desc
+	if userId and userId > 0 then
+		local ok, d = pcall(Players.GetHumanoidDescriptionFromUserId, Players, userId)
+		if ok then desc = d else warn("[Drama] Không lấy được avatar của", userId, d) end
+	end
+	if desc then
+		-- bỏ animation riêng của avatar để dùng bộ chuẩn
+		for _, k in ipairs({ "IdleAnimation", "WalkAnimation", "RunAnimation", "JumpAnimation", "FallAnimation", "ClimbAnimation", "SwimAnimation" }) do
+			desc[k] = 0
+		end
+	else
+	desc = Instance.new("HumanoidDescription")
 	desc.HeadColor = Color3.fromRGB(234, 184, 146)
 	desc.TorsoColor = shirt
 	desc.LeftArmColor, desc.RightArmColor = desc.HeadColor, desc.HeadColor
 	desc.LeftLegColor, desc.RightLegColor = pants, pants
+	end
 	local model = Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R15)
 	model.Name = name
 	local anim = model:FindFirstChild("Animate")
@@ -91,16 +130,20 @@ local function makeActor(name, shirt, pants, cf)
 	for k, id in pairs(ANIM) do
 		local a = Instance.new("Animation"); a.AnimationId = id
 		tracks[k] = animator:LoadAnimation(a)
-		tracks[k].Looped = true
+		tracks[k].Looped = (k ~= "wave")
 	end
 	tracks.idle:Play()
 	return { model = model, hum = hum, tracks = tracks, root = model.PrimaryPart }
 end
 
-local minh = makeActor("Minh", Color3.fromRGB(40, 60, 110), Color3.fromRGB(30, 30, 35),
-	CFrame.new(at(-1.5, 3, -8)) * CFrame.Angles(0, math.rad(180), 0))
-local lan = makeActor("Lan", Color3.fromRGB(150, 40, 60), Color3.fromRGB(50, 40, 40),
-	CFrame.new(at(28, 3, -6)) * CFrame.Angles(0, math.rad(90), 0))
+local minh, lan
+local function spawnActors(player)
+minh = makeActor("Minh", Color3.fromRGB(40, 60, 110), Color3.fromRGB(30, 30, 35),
+	CFrame.new(at(-1.5, 3, -8)) * CFrame.Angles(0, math.rad(180), 0),
+	CONFIG.MinhUserId > 0 and CONFIG.MinhUserId or player.UserId)
+lan = makeActor("Lan", Color3.fromRGB(150, 40, 60), Color3.fromRGB(50, 40, 40),
+	CFrame.new(at(28, 3, -6)) * CFrame.Angles(0, math.rad(90), 0), CONFIG.LanUserId)
+end
 
 local function walkTo(actor, pos)
 	actor.tracks.walk:Play(0.2)
@@ -128,8 +171,9 @@ end
 local function head(actor) return actor.model.Head.Position end
 
 local function runScene()
-	cue:FireAllClients("start")
-	task.wait(1)
+	cue:FireAllClients("start", CONFIG)
+	cue:FireAllClients("title", CONFIG.Title, 4)
+	task.wait(4.5)
 
 	-- SHOT 1: toàn cảnh, máy chạy chậm vào
 	shot(at(0, 18, 40), at(0, 3, -10), 0, 40)
@@ -151,6 +195,7 @@ local function runScene()
 	end)
 	walkTo(lan, at(2.5, 3, -6))
 	face(lan, minh.root.Position)
+	lan.tracks.wave:Play(0.2)
 
 	-- Minh đứng dậy, quay sang Lan
 	face(minh, lan.root.Position)
@@ -172,6 +217,7 @@ local function runScene()
 	-- SHOT 6: cận mặt Minh, zoom chậm (dramatic)
 	shot(head(minh) + (head(lan) - head(minh)).Unit * 5, head(minh), 0, 35)
 	shot(head(minh) + (head(lan) - head(minh)).Unit * 5, head(minh), 3, 18)
+	if CONFIG.Rain then cue:FireAllClients("thunder") end
 	line("Minh", "...", 2)
 	line("Minh", "Sao bây giờ em mới nói?", 3)
 
@@ -187,6 +233,7 @@ local function runScene()
 	shot(at(0, 6, 14), minh.root.Position, 0, 45)
 	task.spawn(walkTo, lan, at(-30, 3, -6))
 	task.wait(1.5)
+	cue:FireAllClients("shake", 0.6)
 	line("Minh", "Lan...!", 2)
 
 	-- SHOT 8: cảnh kết, máy kéo lên cao, Minh đứng một mình dưới đèn
@@ -196,8 +243,14 @@ local function runScene()
 	cue:FireAllClients("end")
 end
 
-Players.PlayerAdded:Connect(function(player)
-	player.CharacterAdded:Wait()
+local running = false
+local function onPlayer(player)
+	if running then return end
+	running = true
+	if not player.Character then player.CharacterAdded:Wait() end
+	spawnActors(player)
 	task.wait(3)
 	runScene()
-end)
+end
+Players.PlayerAdded:Connect(onPlayer)
+for _, p in ipairs(Players:GetPlayers()) do task.spawn(onPlayer, p) end

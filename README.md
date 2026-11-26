@@ -22,3 +22,11 @@ Mẹo: CinematicLighting có thể dán thẳng vào **Command Bar** để thấ
 
 ## Sửa kịch bản
 Trong `runScene()` của `DramaScene.server.lua`: `shot(viTriCam, nhinVao, thoiGianChuyen, fov)`, `line("Tên", "Thoại", giay)`, `walkTo(actor, viTri)`.
+
+## Cấu hình (đầu file `DramaScene.server.lua`, bảng `CONFIG`)
+- `Rain`: mưa + trời âm u + vũng nước phản chiếu + sấm chớp.
+- `MusicId`, `RainSoundId`, `ThunderSoundId`: ID âm thanh lấy từ Creator Store → Audio (để 0 = tắt).
+- `MinhUserId` / `LanUserId`: lấy nguyên avatar (quần áo, tóc, mặt) từ UserId Roblox. Minh mặc định dùng avatar của bạn.
+- `Title`: tiêu đề hiện ở đầu phim.
+
+Hiệu ứng có sẵn: màn đen mở đầu + tiêu đề, letterbox, phụ đề, camera rung, chớp sấm, Lan vẫy tay, fade "— HẾT —" và nhỏ dần nhạc.
