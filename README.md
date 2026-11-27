@@ -1,32 +1,33 @@
 # phimroblox
 
-Bộ script làm phim (machinima) trong Roblox Studio.
+Làm phim (machinima) trong Roblox Studio bằng script Luau.
 
-| File | Đặt vào | Tác dụng |
+## Cảnh hiện tại: Hồ sơ 02 — Người trong gương (Phần 1, Cảnh 1)
+Dựng theo kịch bản trong repo `lamvideo` (`episodes/hem-co-chuyen/ho-so-02-nguoi-lam-thay`).
+
+| File | Đặt vào | Loại |
 |---|---|---|
-| `src/server/CinematicLighting.server.lua` | ServerScriptService (Script) | Ánh sáng hoàng hôn kiểu điện ảnh (Future, Atmosphere, Bloom, DOF, SunRays...) |
-| `src/server/DramaScene.server.lua` | ServerScriptService (Script) | Tự dựng con phố + ghế + đèn + 2 nhân vật R15 và diễn cảnh drama ~60s |
-| `src/client/DramaCamera.client.lua` | StarterPlayer > StarterPlayerScripts (LocalScript) | Camera theo shot, letterbox, phụ đề |
+| `src/server/HoSo02_Scene.server.lua` | ServerScriptService | **Script** |
+| `src/client/HoSo02_Client.client.lua` | StarterPlayer › StarterPlayerScripts | **LocalScript** |
 
-## Chạy thử nhanh (không cần Rojo)
-1. Mở Studio → Baseplate mới.
-2. Tạo **Script** trong ServerScriptService, dán `CinematicLighting.server.lua`.
-3. Tạo **Script** khác trong ServerScriptService, dán `DramaScene.server.lua`.
-4. Tạo **LocalScript** trong StarterPlayer > StarterPlayerScripts, dán `DramaCamera.client.lua`.
-5. Bấm **Play** (F5) → sau ~3 giây cảnh tự diễn. Ghi bằng OBS.
+Bấm **Play (F5)** → ~3 giây sau phim tự chạy (~3 phút).
 
-Mẹo: CinematicLighting có thể dán thẳng vào **Command Bar** để thấy ánh sáng ngay khi dựng cảnh.
+**Nội dung:** tiêu đề → hồi tưởng "Tối hôm trước" (Nam hứa "Tí tao rửa", Tùng đi ngủ) → sáng hôm sau: báo thức, tiếng rửa chén, Nam tưởng là Tùng → Người Kia quay lại, cùng một khuôn mặt → va ghế, lùi ra ngưỡng cửa → hỏi đáp "Cửa mở." → gọi cho Tùng.
 
-## Dùng Rojo
-`rojo serve` rồi Connect trong plugin Rojo.
+**Thế giới:** phòng trọ theo mặt bằng trong DUNG-CANH.md (cửa trái, bếp sau–trái, tủ + gương đứng, bàn sau–phải, cửa sổ phải, nệm đôi gối kem/gối xanh, ghế 4 chân, quạt trần quay), hành lang dãy trọ có lan can, dây phơi, cầu thang, góc đồ "Ai cần cứ lấy". Ánh sáng đêm (đèn tuýp, đèn bàn, màn hình điện thoại) và sáng sớm (nắng xiên qua cửa sổ).
 
-## Sửa kịch bản
-Trong `runScene()` của `DramaScene.server.lua`: `shot(viTriCam, nhinVao, thoiGianChuyen, fov)`, `line("Tên", "Thoại", giay)`, `walkTo(actor, viTri)`.
+**Nhân vật:** Nam (áo ngủ xám), Người Kia (áo xanh rêu của Nam, nốt ruồi đối xứng), Tùng (tóc dựng, áo cam, da ngăm), hàng xóm nữ (tóc búi, cardigan), cô chủ trọ (kẹp càng cua, túi bao tử, chùm chìa khóa). Nam/nữ khác dáng người, tóc dựng bằng khối.
 
-## Cấu hình (đầu file `DramaScene.server.lua`, bảng `CONFIG`)
-- `Rain`: mưa + trời âm u + vũng nước phản chiếu + sấm chớp.
-- `MusicId`, `RainSoundId`, `ThunderSoundId`: ID âm thanh lấy từ Creator Store → Audio (để 0 = tắt).
-- `MinhUserId` / `LanUserId`: lấy nguyên avatar (quần áo, tóc, mặt) từ UserId Roblox. Minh mặc định dùng avatar của bạn.
-- `Title`: tiêu đề hiện ở đầu phim.
+**Biểu cảm:** mắt, mày, miệng vẽ trên mặt, tự chớp mắt, mấp máy môi khi nói. Có: neutral, asleep, sleepy, groggy, annoyed, shocked, confused, squint, scared, angryScared, pain, calm, tired, dread, happy.
 
-Hiệu ứng có sẵn: màn đen mở đầu + tiêu đề, letterbox, phụ đề, camera rung, chớp sấm, Lan vẫy tay, fade "— HẾT —" và nhỏ dần nhạc.
+**Camera:** client tính camera từng khung hình và bám theo nhân vật (hết giật), dolly vòng cung, rung tay máy, Dutch angle, lấy nét theo chủ thể, ống kính theo mm, letterbox 2.39:1.
+
+## Tùy chỉnh
+- Âm thanh: bảng `SOUNDS` đầu file client (dán ID Audio từ Creator Store; 0 = tắt).
+- Bỏ hồi tưởng: `CONFIG.PlayFlashback = false` trong file server.
+- Sửa cảnh: hàm `flashback()` / `scene1()`; các lệnh `cam{...}`, `say(...)`, `expr(...)`, `pose(...)`, `walkTo(...)`.
+
+## Khác
+- `examples/drama-pho/`: cảnh drama đường phố thử nghiệm đầu tiên (không dùng cùng lúc với Hồ sơ 02).
+- `tools/CinematicLighting.lua`: dán vào Command Bar để có ánh sáng hoàng hôn điện ảnh.
+- Rojo: `rojo serve` với `default.project.json`.
