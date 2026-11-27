@@ -2,9 +2,10 @@
   "name": "phimroblox",
   "tree": {
     "$className": "DataModel",
-    "ServerScriptService": { "Drama": { "$path": "src/server" } },
+    "ReplicatedStorage": { "PhimKit": { "$path": "src/shared/PhimKit.lua" } },
+    "ServerScriptService": { "Phim": { "$path": "src/server" } },
     "StarterPlayer": {
-      "StarterPlayerScripts": { "Drama": { "$path": "src/client" } }
+      "StarterPlayerScripts": { "Phim": { "$path": "src/client" } }
     }
   }
 }

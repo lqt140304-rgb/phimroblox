@@ -2,32 +2,32 @@
 
 Làm phim (machinima) trong Roblox Studio bằng script Luau.
 
-## Cảnh hiện tại: Hồ sơ 02 — Người trong gương (Phần 1, Cảnh 1)
-Dựng theo kịch bản trong repo `lamvideo` (`episodes/hem-co-chuyen/ho-so-02-nguoi-lam-thay`).
+## Dự án hiện tại: THÁNG TƯ NÓI DỐI — Tập 1: Cá tháng Tư
+Kịch bản và dàn 6 tập: [docs/THANG-TU-NOI-DOI.md](docs/THANG-TU-NOI-DOI.md)
 
-| File | Đặt vào | Loại |
-|---|---|---|
-| `src/server/HoSo02_Scene.server.lua` | ServerScriptService | **Script** |
-| `src/client/HoSo02_Client.client.lua` | StarterPlayer › StarterPlayerScripts | **LocalScript** |
+| File | Đặt vào | Loại | Tên |
+|---|---|---|---|
+| `src/shared/PhimKit.lua` | ReplicatedStorage | **ModuleScript** | `PhimKit` (đúng tên này) |
+| `src/server/ThangTu_Tap1.server.lua` | ServerScriptService | **Script** | tuỳ ý |
+| `src/client/Phim_Client.client.lua` | StarterPlayer › StarterPlayerScripts | **LocalScript** | tuỳ ý |
 
-Bấm **Play (F5)** → ~3 giây sau phim tự chạy (~3 phút).
+Bấm **Play** → ~3 giây sau tập 1 tự chạy (~4 phút). Xoá các script của dự án cũ trước khi chạy.
 
-**Nội dung:** tiêu đề → hồi tưởng "Tối hôm trước" (Nam hứa "Tí tao rửa", Tùng đi ngủ) → sáng hôm sau: báo thức, tiếng rửa chén, Nam tưởng là Tùng → Người Kia quay lại, cùng một khuôn mặt → va ghế, lùi ra ngưỡng cửa → hỏi đáp "Cửa mở." → gọi cho Tùng.
+### Có gì
+- **Hook 3 giây đầu:** mở thẳng vào câu "Mình chia tay đi" → chữ lớn → tên phim → lùi về 3 tiếng trước.
+- **3 bối cảnh:** phố cũ Hà Nội (nhà ống, biển hiệu, hoa sưa, dây điện, xe đạp chở hoa loa kèn), quán "Cà Phê Cũ" (mặt kính, đèn thả, quầy, kệ sách, vỉa hè mưa), phòng trọ đêm (đèn dây, màn hình game, thành phố ngoài cửa sổ).
+- **6 diễn viên:** Minh, An, Khoa, cô Hoa, chị phục vụ, khách quán. Có 2 dáng nam/nữ và các màu da khác nhau.
+- **Trang phục thay được giữa cảnh:** `Kit.dress(nhânVật, "tên_bộ")`. Có sẵn 10 bộ: sơ mi kẻ, áo phông, đồ ngủ, hoodie, váy trắng, áo dài, cardigan + chân váy dài, áo khoác bò, áo bà ba, đồng phục quán. Phụ kiện: balo, túi tote, đồng hồ, kính, tai nghe, tai nghe nhét tai, tạp dề, nón lá. Muốn thêm bộ mới thì thêm vào `Kit.OUTFITS`.
+- **Kiểu tóc:** curtain (mái chia ngôi), short, spiky, long, bob, ponytail, bun.
+- **Biểu cảm:** 25 biểu cảm (sad, cry, hurt, laugh, forcedSmile, worried, dread…), nước mắt chảy, son môi, chớp mắt, mấp máy môi khi nói.
+- **Camera rộng hơn:** khung 2:1 (thay cho 2.39), camera tính khoảng cách theo cỡ cảnh `Kit.frame(nv, "CU"|"MCU"|"MS"|"MLS"|"FS"|"WS")` nên luôn thấy rõ người; có thêm khung qua vai `Kit.ots` và hai người cùng khung `Kit.two`.
+- **Điện thoại nhắn tin trên màn hình**, chữ "Đã xem", mưa, phụ đề có màu theo nhân vật.
 
-**Thế giới:** phòng trọ theo mặt bằng trong DUNG-CANH.md (cửa trái, bếp sau–trái, tủ + gương đứng, bàn sau–phải, cửa sổ phải, nệm đôi gối kem/gối xanh, ghế 4 chân, quạt trần quay), hành lang dãy trọ có lan can, dây phơi, cầu thang, góc đồ "Ai cần cứ lấy". Ánh sáng đêm (đèn tuýp, đèn bàn, màn hình điện thoại) và sáng sớm (nắng xiên qua cửa sổ).
+### Tuỳ chỉnh
+- Âm thanh: bảng `SOUNDS` đầu file client (dán ID Audio, 0 = tắt).
+- Khung phim: `LETTERBOX` đầu file client (1.78 = không có viền đen).
 
-**Nhân vật:** Nam (áo ngủ xám), Người Kia (áo xanh rêu của Nam, nốt ruồi đối xứng), Tùng (tóc dựng, áo cam, da ngăm), hàng xóm nữ (tóc búi, cardigan), cô chủ trọ (kẹp càng cua, túi bao tử, chùm chìa khóa). Nam/nữ khác dáng người, tóc dựng bằng khối.
-
-**Biểu cảm:** mắt, mày, miệng vẽ trên mặt, tự chớp mắt, mấp máy môi khi nói. Có: neutral, asleep, sleepy, groggy, annoyed, shocked, confused, squint, scared, angryScared, pain, calm, tired, dread, happy.
-
-**Camera:** client tính camera từng khung hình và bám theo nhân vật (hết giật), dolly vòng cung, rung tay máy, Dutch angle, lấy nét theo chủ thể, ống kính theo mm, letterbox 2.39:1.
-
-## Tùy chỉnh
-- Âm thanh: bảng `SOUNDS` đầu file client (dán ID Audio từ Creator Store; 0 = tắt).
-- Bỏ hồi tưởng: `CONFIG.PlayFlashback = false` trong file server.
-- Sửa cảnh: hàm `flashback()` / `scene1()`; các lệnh `cam{...}`, `say(...)`, `expr(...)`, `pose(...)`, `walkTo(...)`.
-
-## Khác
-- `examples/drama-pho/`: cảnh drama đường phố thử nghiệm đầu tiên (không dùng cùng lúc với Hồ sơ 02).
-- `tools/CinematicLighting.lua`: dán vào Command Bar để có ánh sáng hoàng hôn điện ảnh.
-- Rojo: `rojo serve` với `default.project.json`.
+## Lưu trữ
+- `examples/ho-so-02/`: dự án "Hồ sơ 02" (đã dừng).
+- `examples/drama-pho/`: cảnh thử đầu tiên.
+- `tools/CinematicLighting.lua`: preset ánh sáng hoàng hôn cho Command Bar.
