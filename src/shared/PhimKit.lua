@@ -1992,6 +1992,9 @@ function Kit._client()
 			gui.Enabled = true
 			pcall(function()
 				StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+				pcall(function()
+					StarterGui:SetCore("TopbarEnabled", false) -- ẩn thanh nút Roblox góc trên
+				end)
 			end)
 		elseif kind == "cam" then
 			onShot(a)
