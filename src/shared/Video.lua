@@ -22,12 +22,12 @@ local MUSIC_ID = 0 -- nhạc nền kiểu khoa học/hồi hộp
 	Hoặc lấy nguyên avatar của một tài khoản: userId = 123456.
 ]]
 local CAST = {
-	Ban = { skin = "#efc8a8", hair = "curtain", hairColor = "#1e1a18", height = 1.02, outfit = { top = "hoodie", sleeves = "long", topColor = "#3b6ea5", bottom = "jeans", bottomColor = "#2f3a4a", shoes = "#f2f2f2", acc = { "backpack" } } },
-	Linh = { skin = "#f4d5c0", hair = "bob", hairColor = "#3a241a", female = true, lips = "#c06a6a", height = 0.93, outfit = "linh_ao_bo" },
-	Tuan = { skin = "#c98e68", hair = "spiky", hairColor = "#161412", height = 1.12, width = 1.1, outfit = { top = "tee", sleeves = "short", topColor = "#c8322f", bottom = "shorts", bottomColor = "#1d1d22", shoes = "#f2f2f2", acc = { "watch" } } },
+	Ban = { catalog = { HairAccessory = "7259123616", Shirt = 398633584, Pants = 382538503 },  skin = "#efc8a8", hair = "curtain", hairColor = "#1e1a18", height = 1.02, outfit = { top = "hoodie", sleeves = "long", topColor = "#3b6ea5", bottom = "jeans", bottomColor = "#2f3a4a", shoes = "#f2f2f2", acc = { "backpack" } } },
+	Linh = { catalog = { HairAccessory = "2956239660", Shirt = 398635081, Pants = 144076512 },  skin = "#f4d5c0", hair = "bob", hairColor = "#3a241a", female = true, lips = "#c06a6a", height = 0.93, outfit = "linh_ao_bo" },
+	Tuan = { catalog = { HairAccessory = "5644883846", Pants = 9112492265 },  skin = "#c98e68", hair = "spiky", hairColor = "#161412", height = 1.12, width = 1.1, outfit = { top = "tee", sleeves = "short", topColor = "#c8322f", bottom = "shorts", bottomColor = "#1d1d22", shoes = "#f2f2f2", acc = { "watch" } } },
 	CoBanMi = { skin = "#d8a280", hair = "bun", hairColor = "#2a2626", female = true, height = 0.88, width = 0.98, proportion = 0.2, outfit = { top = "baba", sleeves = "long", topColor = "#6f8a6a", bottom = "pants", bottomColor = "#1e1f22", shoes = "#e8e4dc", acc = { "apron" } } },
-	KhachA = { skin = "#f0cfb8", hair = "ponytail", hairColor = "#4a2e22", female = true, lips = "#c07070", height = 0.95, outfit = "an_cardigan" },
-	KhachB = { skin = "#dcae8a", hair = "short", hairColor = "#1e1a18", height = 1.0, width = 1.08, outfit = "minh_ao_phong" },
+	KhachA = { catalog = { HairAccessory = "376526888" },  skin = "#f0cfb8", hair = "ponytail", hairColor = "#4a2e22", female = true, lips = "#c07070", height = 0.95, outfit = "an_cardigan" },
+	KhachB = { catalog = { HairAccessory = "63690008" },  skin = "#dcae8a", hair = "short", hairColor = "#1e1a18", height = 1.0, width = 1.08, outfit = "minh_ao_phong" },
 	KhachC = { skin = "#f2d2bc", hair = "short", hairColor = "#2a1d18", height = 0.72, width = 0.85, headScale = 1.1, outfit = { top = "tee", sleeves = "short", topColor = "#e8c547", bottom = "shorts", bottomColor = "#3b5a8a", shoes = "#d64545", acc = {} } },
 	KhachD = { skin = "#c8926e", hair = "short", hairColor = "#bdbdbd", height = 0.95, width = 1.05, outfit = { top = "shirt", sleeves = "long", topColor = "#d8d2c0", bottom = "pants", bottomColor = "#4a4a44", shoes = "#2a2a2a", acc = { "glasses" } } },
 }
