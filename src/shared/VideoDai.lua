@@ -218,6 +218,31 @@ function VD.run(Kit)
 				task.delay(g[3] or 0, Kit.gesture, who, g[2])
 			end
 		end
+		-- câu dài mà máy đứng yên một chỗ → giữa câu tự cắt sang người gần nhất (cận phản ứng) hoặc góc rộng hơn
+		if d.dur > 5.2 then
+			local id0 = Kit._shotId
+			task.delay(d.dur * 0.5, function()
+				if Kit._shotId ~= id0 then
+					return
+				end
+				local last = Kit._lastShot
+				local lookP = last and (typeof(last.look) == "Vector3" and last.look) or nil
+				local best, bd
+				for _, a in pairs(A) do
+					if a.model.Parent then
+						local dist = lookP and (a.root.Position - lookP).Magnitude or 0
+						if dist < 60 and (not bd or dist < bd) then
+							best, bd = a, dist
+						end
+					end
+				end
+				if best then
+					Kit.frame(best, math.random() < 0.5 and "MCU" or "MS", { angle = math.random(-35, 35), mm = 40 })
+				elseif last and typeof(last.pos) == "Vector3" and lookP then
+					Kit.cam({ pos = lookP + (last.pos - lookP) * 1.8 + Vector3.new(0, 2, 0), look = lookP, fov = last.fov, time = 0 })
+				end
+			end)
+		end
 		if d.big ~= "" and not d.noBig then
 			task.delay(0.5, fx, "big", d.big, math.min(d.dur, 3))
 		end

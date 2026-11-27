@@ -717,15 +717,21 @@ function Kit.actor(name, spec)
 	root.Anchored = true
 
 	-- tấm mặt: mắt / mày / miệng / nốt ruồi / nước mắt (vẽ trên máy người xem)
+	-- Đầu khối vuông (kiểu Roblox cổ điển): mặt vẽ thẳng lên mặt trước của khối nên nhìn nghiêng vẫn dính sát.
+	-- Đầu tròn gốc được ẩn đi (tóc/phụ kiện catalog vẫn bám vào nó như bình thường).
 	local plate = Instance.new("Part")
 	plate.Name = "FacePlate"
-	plate.Transparency = 1
+	plate.Shape = Enum.PartType.Block
+	plate.Size = Vector3.new(head.Size.X * 0.95, head.Size.Y * 0.98, head.Size.Z * 0.95)
+	plate.Color = hex(spec.skin or "#f0cbb2")
+	plate.Material = Enum.Material.SmoothPlastic
+	plate.TopSurface, plate.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
 	plate.CanCollide, plate.CanQuery, plate.CanTouch, plate.Massless = false, false, false, true
-	local fs = math.min(head.Size.X, head.Size.Y)
-	plate.Size = Vector3.new(fs * 0.95, fs * 0.95, 0.05)
-	plate.CFrame = head.CFrame * CFrame.new(0, -head.Size.Y * 0.04, -head.Size.Z / 2 - 0.02)
+	plate.CastShadow = false
+	plate.CFrame = head.CFrame
 	plate.Parent = model
 	Kit.weld(head, plate)
+	head.Transparency = 1
 	plate:SetAttribute("Expression", "neutral")
 	plate:SetAttribute("Talking", false)
 	plate:SetAttribute("Mole", spec.mole or "")
@@ -925,7 +931,51 @@ function Kit.walk(a, pos, speed)
 	a.model.Parent = Kit.ACTORS
 	speed = speed or 6
 	local pts = typeof(pos) == "Vector3" and { pos } or pos
-	Kit.anim(a, "walk", 0.2, speed / 9)
+	-- chu kỳ bước đi tự dựng: chân bước, gối gập, tay vung ngược chân
+	for _, tr in pairs(a.tracks) do
+		tr:Stop(0.2)
+	end
+	a.busy = true
+	local walking = true
+	task.spawn(function()
+		local phase = 0
+		local J = a.joints
+		local amp = math.clamp(speed / 7, 0.4, 1.3)
+		while walking do
+			local dt = RunService.Heartbeat:Wait()
+			phase += dt * speed * 1.15
+			local sn = math.sin(phase)
+			local function set(name, x)
+				local j = J[name]
+				if j then
+					j.motor.C0 = j.c0 * CFrame.Angles(rad(x), 0, 0)
+				end
+			end
+			set("RightHip", 28 * sn * amp)
+			set("LeftHip", -28 * sn * amp)
+			set("RightKnee", -math.max(0, -sn) * 45 * amp)
+			set("LeftKnee", -math.max(0, sn) * 45 * amp)
+			if not a.posed then
+				set("RightShoulder", -22 * sn * amp)
+				set("LeftShoulder", 22 * sn * amp)
+				set("RightElbow", 15 + 10 * math.max(0, sn) * amp)
+				set("LeftElbow", 15 + 10 * math.max(0, -sn) * amp)
+			end
+			set("Waist", -3 * amp)
+		end
+		for _, n in ipairs({ "RightHip", "LeftHip", "RightKnee", "LeftKnee", "Waist" }) do
+			if J[n] then
+				Kit.tw(J[n].motor, 0.25, { C0 = J[n].c0 })
+			end
+		end
+		if not a.posed then
+			for _, n in ipairs({ "RightShoulder", "LeftShoulder", "RightElbow", "LeftElbow" }) do
+				if J[n] then
+					Kit.tw(J[n].motor, 0.25, { C0 = J[n].c0 })
+				end
+			end
+		end
+	end)
 	for _, p in ipairs(pts) do
 		local to = Vector3.new(p.X, p.Y + a.standY, p.Z)
 		local from = a.root.Position
@@ -936,6 +986,8 @@ function Kit.walk(a, pos, speed)
 			Kit.glide(a, flatLook(to, to + face.LookVector), dist / speed, Enum.EasingStyle.Linear)
 		end
 	end
+	walking = false
+	a.busy = false
 	Kit.anim(a, "idle", 0.3)
 end
 
@@ -1236,7 +1288,10 @@ function Kit.on(a, partName, offset, localSpace)
 	return { actor = a.name, part = partName or "Head", offset = offset, localSpace = localSpace }
 end
 
+Kit._shotId = 0
 function Kit.cam(spec)
+	Kit._shotId += 1
+	Kit._lastShot = spec
 	if spec.mm then
 		spec.fov = fovMM(spec.mm)
 		spec.mm = nil
