@@ -1017,7 +1017,7 @@ function Kit.frame(a, size, opts)
 		look = Kit.on(a, focusPart, focusOff + (opts.lookOffset or Vector3.zero), true),
 		mm = mm,
 		time = opts.time or 0,
-		handheld = opts.handheld or 0.04,
+		handheld = opts.handheld or 0,
 		smooth = opts.smooth,
 		dutch = opts.dutch,
 		dof = opts.dof or ((size == "CU" or size == "ECU" or size == "MCU") and 0.35 or 0.15),
@@ -1044,7 +1044,7 @@ function Kit.ots(over, onto, size, opts)
 		look = Kit.on(onto, "Head", Vector3.new(0, -0.5, 0)),
 		mm = mm,
 		time = 0,
-		handheld = opts.handheld or 0.04,
+		handheld = opts.handheld or 0,
 		dof = 0.3,
 		focusRadius = 2.5,
 	})
@@ -1066,7 +1066,7 @@ function Kit.two(a, b, size, opts)
 		look = mid,
 		mm = mm,
 		time = opts.time or 0,
-		handheld = opts.handheld or 0.03,
+		handheld = opts.handheld or 0,
 		dof = 0.12,
 		focusRadius = 4,
 	})
@@ -1733,7 +1733,7 @@ function Kit._client()
 		end
 
 		-- máy tự tiến rất chậm vào chủ thể (cảm giác điện ảnh)
-		local drift = spec.drift == nil and 0.03 or spec.drift
+		local drift = spec.drift or 0 -- máy đứng yên (máy trôi làm bóng nắng nhảy lớp)
 		local camPos = st.pos
 		if drift > 0 then
 			local prog = math.clamp((now - st.t0) / 7, 0, 1)
@@ -1766,7 +1766,7 @@ function Kit._client()
 		if spec.dutch then
 			cf = cf * CFrame.Angles(0, 0, math.rad(spec.dutch))
 		end
-		local hh = (spec.handheld or 0) * 1.2
+		local hh = (Kit.ALLOW_HANDHELD and spec.handheld or 0) * 1.2
 		if hh > 0 then
 			cf = cf
 				* CFrame.Angles(
@@ -1790,7 +1790,7 @@ function Kit._client()
 		-- lấy nét theo chủ thể
 		local dofAmt = spec.dof
 		if dofAmt == nil then
-			dofAmt = 0.1 -- luôn có chút mờ hậu cảnh để tách lớp
+			dofAmt = 0
 		end
 		if dofAmt > 0 then
 			dof.Enabled = true
