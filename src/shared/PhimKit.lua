@@ -93,6 +93,16 @@ function Kit.buildRigs(cast)
 		desc.BodyTypeScale = spec.bodyType or (f and 0.35 or 0.15)
 		desc.ProportionScale = spec.proportion or (f and 0.6 or 0.2)
 		local ok, model = pcall(Players.CreateHumanoidModelFromDescription, Players, desc, Enum.HumanoidRigType.R15)
+		if not ok and spec.catalog then
+			warn("[PhimKit] Đồ catalog của", name, "lỗi, dùng đồ tự dựng:", model)
+			for k in pairs(spec.catalog) do
+				pcall(function()
+					desc[k] = typeof(desc[k]) == "number" and 0 or ""
+				end)
+			end
+			hasHair, hasClothes = false, false
+			ok, model = pcall(Players.CreateHumanoidModelFromDescription, Players, desc, Enum.HumanoidRigType.R15)
+		end
 		if ok then
 			model.Name = name
 			local animate = model:FindFirstChild("Animate")
