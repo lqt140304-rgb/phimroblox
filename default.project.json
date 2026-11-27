@@ -2,10 +2,13 @@
   "name": "phimroblox",
   "tree": {
     "$className": "DataModel",
-    "ReplicatedStorage": { "PhimKit": { "$path": "src/shared/PhimKit.lua" } },
-    "ServerScriptService": { "Phim": { "$path": "src/server" } },
+    "ReplicatedStorage": {
+      "PhimKit": { "$path": "src/shared/PhimKit.lua" },
+      "Tap1": { "$path": "src/shared/Tap1.lua" }
+    },
+    "ServerScriptService": { "Phim_Server": { "$path": "src/server/Phim_Server.server.lua" } },
     "StarterPlayer": {
-      "StarterPlayerScripts": { "Phim": { "$path": "src/client" } }
+      "StarterPlayerScripts": { "Phim_Player": { "$path": "src/client/Phim_Player.client.lua" } }
     }
   }
 }
