@@ -14,6 +14,13 @@ local Video = {}
 local NARRATION_ID = 0 -- ID audio giọng đọc toàn bộ video (0 = chỉ hiện phụ đề)
 local MUSIC_ID = 0 -- nhạc nền kiểu khoa học/hồi hộp
 
+--[[ ĐỒ THẬT TỪ CATALOG ROBLOX (đẹp nhất):
+	Mở roblox.com/catalog, chọn món đồ, lấy số ID trong đường dẫn (roblox.com/catalog/<ID>/...),
+	rồi thêm vào nhân vật, ví dụ:
+		catalog = { HairAccessory = "1234567", Shirt = 2345678, Pants = 3456789, HatAccessory = "", FaceAccessory = "" }
+	Nhiều món cùng loại: "id1,id2". Có tóc catalog thì bỏ tóc tự dựng; có áo/quần catalog thì bỏ đồ tự dựng.
+	Hoặc lấy nguyên avatar của một tài khoản: userId = 123456.
+]]
 local CAST = {
 	Ban = { skin = "#efc8a8", hair = "curtain", hairColor = "#1e1a18", height = 1.02, outfit = { top = "hoodie", sleeves = "long", topColor = "#3b6ea5", bottom = "jeans", bottomColor = "#2f3a4a", shoes = "#f2f2f2", acc = { "backpack" } } },
 	Linh = { skin = "#f4d5c0", hair = "bob", hairColor = "#3a241a", female = true, lips = "#c06a6a", height = 0.93, outfit = "linh_ao_bo" },

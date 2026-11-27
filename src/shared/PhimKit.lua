@@ -69,6 +69,22 @@ function Kit.buildRigs(cast)
 			desc.HeadColor, desc.TorsoColor = skin, skin
 			desc.LeftArmColor, desc.RightArmColor, desc.LeftLegColor, desc.RightLegColor = skin, skin, skin, skin
 		end
+		-- đồ thật từ Catalog: catalog = { HairAccessory = "id,id", Shirt = id, Pants = id, HatAccessory = "id", ... }
+		local hasHair, hasClothes = false, false
+		for k, v in pairs(spec.catalog or {}) do
+			local ok, err = pcall(function()
+				desc[k] = v
+			end)
+			if not ok then
+				warn("[PhimKit] Sai thuộc tính catalog", k, err)
+			elseif v ~= 0 and v ~= "" then
+				if k == "HairAccessory" then
+					hasHair = true
+				elseif k == "Shirt" or k == "Pants" or k == "GraphicTShirt" then
+					hasClothes = true
+				end
+			end
+		end
 		local f = spec.female == true
 		desc.HeightScale = spec.height or (f and 0.93 or 1)
 		desc.WidthScale = spec.width or (f and 0.8 or 1)
@@ -85,6 +101,8 @@ function Kit.buildRigs(cast)
 			end
 			cleanHead(model:WaitForChild("Head"))
 			model:SetAttribute("Custom", custom)
+			model:SetAttribute("HasHair", hasHair)
+			model:SetAttribute("HasClothes", hasClothes)
 			model.Parent = folder
 		else
 			warn("[PhimKit] Lỗi tạo nhân vật", name, model)
@@ -475,6 +493,24 @@ function Kit.dress(a, outfit)
 		end
 	end
 
+	-- chi tiết: đế giày, thắt lưng, cổ tay áo
+	for _, n in ipairs({ "LeftFoot", "RightFoot" }) do
+		attach(f, m[n], "Sole", Vector3.new(1.08, 0.28, 1.1), Vector3.new(0, -0.42, -0.02), o.sole or "#f2f2f2")
+		attach(f, m[n], "Lace", Vector3.new(0.5, 0.12, 0.4), Vector3.new(0, 0.3, -0.35), hex(o.shoes):Lerp(Color3.new(1, 1, 1), 0.5))
+	end
+	if o.bottom == "pants" or o.bottom == "jeans" or o.bottom == "shorts" then
+		attach(f, m.LowerTorso, "Belt", Vector3.new(1.05, 0.16, 1.07), Vector3.new(0, 0.38, 0), o.belt or "#2a2420")
+		attach(f, m.LowerTorso, "Buckle", Vector3.new(0.18, 0.18, 0.05), Vector3.new(0, 0.38, -0.55), "#c8b070", { Material = Enum.Material.Metal })
+	end
+	if long then
+		for _, n in ipairs({ "LeftLowerArm", "RightLowerArm" }) do
+			attach(f, m[n], "Cuff", Vector3.new(1.1, 0.12, 1.1), Vector3.new(0, -0.44, 0), armColor:Lerp(Color3.new(0, 0, 0), 0.2))
+		end
+	else
+		for _, n in ipairs({ "LeftUpperArm", "RightUpperArm" }) do
+			attach(f, m[n], "SleeveHem", Vector3.new(1.1, 0.1, 1.1), Vector3.new(0, -0.3, 0), armColor:Lerp(Color3.new(0, 0, 0), 0.2))
+		end
+	end
 	for _, accName in ipairs(o.acc or {}) do
 		local build = ACCESSORIES[accName]
 		if build then
@@ -504,8 +540,11 @@ HAIR.short = function(h, f, c, w, hh, d)
 	hairPart(h, f, "Back", Vector3.new(w * 1.04, hh * 0.55, d * 0.25), Vector3.new(0, hh * 0.18, d * 0.43), c)
 	hairPart(h, f, "Fringe", Vector3.new(w * 0.95, hh * 0.12, d * 0.14), Vector3.new(0, hh * 0.4, -d * 0.47), c)
 end
-HAIR.curtain = function(h, f, c, w, hh, d) -- mái chia ngôi giữa (Minh)
+HAIR.curtain = function(h, f, c, w, hh, d) -- mái chia ngôi giữa
 	HAIR.short(h, f, c, w, hh, d)
+	for k = -1, 1 do -- phồng đỉnh đầu
+		hairPart(h, f, "Volume" .. k, Vector3.new(w * 0.4, hh * 0.22, d * 0.5), Vector3.new(w * k * 0.28, hh * 0.58, d * 0.05), c:Lerp(Color3.new(1, 1, 1), 0.04 * (k + 1)), nil, CFrame.Angles(rad(-10), 0, rad(-k * 12)))
+	end
 	hairPart(h, f, "BangL", Vector3.new(w * 0.42, hh * 0.2, d * 0.14), Vector3.new(-w * 0.24, hh * 0.34, -d * 0.48), c, nil, CFrame.Angles(0, 0, rad(-18)))
 	hairPart(h, f, "BangR", Vector3.new(w * 0.42, hh * 0.2, d * 0.14), Vector3.new(w * 0.24, hh * 0.34, -d * 0.48), c, nil, CFrame.Angles(0, 0, rad(18)))
 	hairPart(h, f, "SideL", Vector3.new(w * 0.12, hh * 0.42, d * 0.8), Vector3.new(-w * 0.5, hh * 0.18, 0.05), c)
@@ -519,7 +558,10 @@ HAIR.spiky = function(h, f, c, w, hh, d)
 		hairPart(h, f, "Spike" .. i, Vector3.new(w * 0.22, hh * 0.42, d * 0.22), Vector3.new(w * x, hh * 0.66, d * z), c, nil, CFrame.Angles(rad(z * 60 - 20), 0, rad(-x * 50)))
 	end
 end
-HAIR.long = function(h, f, c, w, hh, d) -- tóc dài thẳng ngang lưng (An)
+HAIR.long = function(h, f, c, w, hh, d) -- tóc dài thẳng ngang lưng
+	for k = -2, 2 do -- lọn tóc sau lưng
+		hairPart(h, f, "Strand" .. k, Vector3.new(w * 0.22, hh * 1.9, d * 0.12), Vector3.new(w * k * 0.2, -hh * 0.5, d * 0.62), c:Lerp(Color3.new(0, 0, 0), (k % 2) * 0.12), nil, CFrame.Angles(rad(6), 0, rad(k * 2)))
+	end
 	hairPart(h, f, "Back", Vector3.new(w * 1.1, hh * 2.1, d * 0.3), Vector3.new(0, -hh * 0.45, d * 0.45), c)
 	hairPart(h, f, "SideL", Vector3.new(w * 0.14, hh * 1.3, d * 0.75), Vector3.new(-w * 0.52, -hh * 0.1, 0.05), c)
 	hairPart(h, f, "SideR", Vector3.new(w * 0.14, hh * 1.3, d * 0.75), Vector3.new(w * 0.52, -hh * 0.1, 0.05), c)
@@ -619,6 +661,7 @@ function Kit.actor(name, spec)
 	plate:SetAttribute("Lips", spec.lips or "")
 	plate:SetAttribute("Gaze", Vector2.zero)
 	plate:SetAttribute("Tears", false)
+	plate:SetAttribute("EyeColor", spec.eyeColor or "#3a2418")
 
 	local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator")
 	animator.Parent = hum
@@ -654,8 +697,24 @@ function Kit.actor(name, spec)
 		standY = hum.HipHeight + root.Size.Y / 2,
 	}
 	if custom then
-		Kit.hair(a, spec.hair, spec.hairColor)
-		Kit.dress(a, spec.outfit)
+		if not model:GetAttribute("HasHair") then
+			Kit.hair(a, spec.hair, spec.hairColor)
+		end
+		if not model:GetAttribute("HasClothes") then
+			Kit.dress(a, spec.outfit)
+		end
+		-- tai
+		for _, sx in ipairs({ -1, 1 }) do
+			local ear = Instance.new("Part")
+			ear.Name = "Ear"
+			ear.Size = Vector3.new(0.12, head.Size.Y * 0.28, head.Size.Z * 0.22)
+			ear.Color = a.skin
+			ear.Material = Enum.Material.SmoothPlastic
+			ear.CanCollide, ear.CanQuery, ear.CanTouch, ear.Massless = false, false, false, true
+			ear.CFrame = head.CFrame * CFrame.new(sx * head.Size.X * 0.5, -head.Size.Y * 0.02, 0)
+			ear.Parent = model
+			Kit.weld(head, ear)
+		end
 	elseif spec.outfit and spec.forceOutfit then
 		Kit.dress(a, spec.outfit)
 	end
@@ -1233,15 +1292,40 @@ function Kit._client()
 		local female = plate:GetAttribute("Female") == true
 
 		local f = { plate = plate, cur = table.clone(EXPR.neutral), nextBlink = os.clock() + math.random() * 3, blinkUntil = 0, seed = math.random() * 100 }
-		f.eyeL, f.eyeR = el(dark, 2), el(dark, 2)
+		-- mắt: lòng trắng (viền tối) + tròng màu + con ngươi + điểm sáng; nhắm mắt = lòng trắng dẹt lại
+		local okEye, eyeColor = pcall(Color3.fromHex, plate:GetAttribute("EyeColor") or "")
+		eyeColor = okEye and eyeColor or Color3.fromRGB(58, 36, 24)
+		f.eyeL, f.eyeR = el(Color3.fromRGB(250, 248, 244), 2), el(Color3.fromRGB(250, 248, 244), 2)
+		f.irises = {}
 		for _, eye in ipairs({ f.eyeL, f.eyeR }) do
-			local hl = el(Color3.new(1, 1, 1), 3)
-			hl.Size = UDim2.fromScale(0.32, 0.25)
+			eye.ClipsDescendants = true
+			local stroke = Instance.new("UIStroke")
+			stroke.Color = dark
+			stroke.Thickness = 2
+			stroke.Parent = eye
+			local iris = el(eyeColor, 3)
+			iris.Parent = eye
+			local pupil = el(Color3.fromRGB(12, 10, 10), 4)
+			pupil.Size = UDim2.fromScale(0.5, 0.5)
+			pupil.Position = UDim2.fromScale(0.5, 0.5)
+			pupil.Parent = iris
+			local hl = el(Color3.new(1, 1, 1), 5)
+			hl.Size = UDim2.fromScale(0.32, 0.32)
 			hl.Position = UDim2.fromScale(0.68, 0.3)
-			hl.Parent = eye
+			hl.Parent = iris
+			table.insert(f.irises, iris)
 		end
+		local nose = el(skin:Lerp(Color3.fromRGB(150, 80, 60), 0.35), 1, 0.5)
+		nose.Size = UDim2.fromScale(0.035, 0.05)
+		nose.Position = UDim2.fromScale(0.5, 0.6)
+		nose.BackgroundTransparency = 0.25
 		f.browL, f.browR = el(browColor, 2, 0.5), el(browColor, 2, 0.5)
 		f.mouth = el(Color3.fromRGB(90, 40, 42), 2, 1)
+		f.mouth.ClipsDescendants = true
+		f.teeth = el(Color3.fromRGB(250, 248, 240), 3, 0.3)
+		f.teeth.Size = UDim2.fromScale(0.8, 0.35)
+		f.teeth.Position = UDim2.fromScale(0.5, 0.15)
+		f.teeth.Parent = f.mouth
 		f.cornerL, f.cornerR = el(Color3.fromRGB(90, 40, 42), 2, 1), el(Color3.fromRGB(90, 40, 42), 2, 1)
 		-- nốt ruồi: Nam bên trái mặt, Người Kia bên phải (đối xứng gương)
 		local moleSide = plate:GetAttribute("Mole")
@@ -1298,8 +1382,14 @@ function Kit._client()
 			local gz = plate:GetAttribute("Gaze") or Vector2.zero
 			local eyeH = (now < f.blinkUntil) and 1.2 or c.eyeH
 			local ex, ey = gz.X * 3, c.eyeY + gz.Y * 2
-			f.eyeL.Size, f.eyeR.Size = S(c.eyeW, eyeH), S(c.eyeW, eyeH)
-			f.eyeL.Position, f.eyeR.Position = S(35 + ex, ey), S(65 + ex, ey)
+			local sw = c.eyeW * 1.35
+			f.eyeL.Size, f.eyeR.Size = S(sw, eyeH), S(sw, eyeH)
+			f.eyeL.Position, f.eyeR.Position = S(35, ey), S(65, ey)
+			local irisD = math.min(c.eyeW * 1.0, 13)
+			for _, iris in ipairs(f.irises) do
+				iris.Size = UDim2.fromScale(irisD / sw, irisD / math.max(eyeH, 0.5))
+				iris.Position = UDim2.fromScale(0.5 + gz.X * 0.18, 0.5 + gz.Y * 0.15)
+			end
 			if f.lashL then
 				f.lashL.Size, f.lashR.Size = S(c.eyeW * 0.6, 2), S(c.eyeW * 0.6, 2)
 				f.lashL.Position = S(35 + ex - c.eyeW * 0.4, ey - eyeH / 2)
@@ -1323,6 +1413,7 @@ function Kit._client()
 			f.tearL.Position = S(33 + ex, ey + eyeH / 2 + tl / 2)
 			f.tearR.Position = S(67 + ex, ey + eyeH / 2 + tl / 2)
 			f.mouth.Size = S(mw, mh)
+			f.teeth.Visible = mh > 5
 			f.mouth.Position = S(50, c.mouthY)
 			local sm = c.smile
 			local show = math.abs(sm) > 0.08
