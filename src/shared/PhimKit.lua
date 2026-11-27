@@ -172,6 +172,57 @@ function Kit.light(className, parent, props)
 	return l
 end
 
+------------------------------------------------------------------------ MODEL CÓ SẴN (Toolbox)
+-- Kéo model miễn phí từ Toolbox vào ReplicatedStorage > thư mục "PhimAssets", đặt tên theo loại
+-- (Car, Tree, Bench, Lamp, Motorbike…). Có thể có nhiều bản: Car, Car2, Car3… → chọn ngẫu nhiên.
+-- Nếu không có, video dùng mô hình tự dựng.
+function Kit.asset(name, cf, targetLength, seed)
+	local lib = ReplicatedStorage:FindFirstChild("PhimAssets")
+	if not lib then
+		return nil
+	end
+	local choices = {}
+	for _, c in ipairs(lib:GetChildren()) do
+		if c.Name == name or c.Name:match("^" .. name .. "%d+$") then
+			table.insert(choices, c)
+		end
+	end
+	if #choices == 0 then
+		return nil
+	end
+	local src = choices[((seed or 1) % #choices) + 1]
+	local m = src:Clone()
+	if m:IsA("BasePart") then
+		local wrap = Instance.new("Model")
+		m.Parent = wrap
+		m = wrap
+	end
+	for _, d in ipairs(m:GetDescendants()) do
+		if d:IsA("LuaSourceContainer") then
+			d:Destroy()
+		elseif d:IsA("BasePart") then
+			d.Anchored = true
+		end
+	end
+	m.Parent = Kit.SET
+	if targetLength then
+		local ext = m:GetExtentsSize()
+		local len = math.max(ext.X, ext.Z)
+		if len > 0 then
+			pcall(function()
+				m:ScaleTo(m:GetScale() * targetLength / len)
+			end)
+		end
+	end
+	local bb, size = m:GetBoundingBox()
+	m.WorldPivot = CFrame.new(bb.Position - Vector3.new(0, size.Y / 2, 0)) * m:GetPivot().Rotation
+	m:PivotTo(cf)
+	if not m.PrimaryPart then
+		m.PrimaryPart = m:FindFirstChildWhichIsA("BasePart", true)
+	end
+	return m
+end
+
 ------------------------------------------------------------------------ ÁNH SÁNG & MÀU
 local function ensure(className, parent)
 	local obj = parent:FindFirstChildOfClass(className) or Instance.new(className)
@@ -191,7 +242,7 @@ function Kit.look(name)
 		Lighting.Technology = Enum.Technology.Future
 	end)
 	Lighting.GlobalShadows = true
-	Lighting.ShadowSoftness = 0.2
+	Lighting.ShadowSoftness = 0.45
 	Lighting.EnvironmentDiffuseScale = 0.6
 	Lighting.EnvironmentSpecularScale = 0.6
 	Lighting.ClockTime = L.ClockTime
@@ -834,7 +885,7 @@ function Kit.frame(a, size, opts)
 		look = Kit.on(a, focusPart, focusOff + (opts.lookOffset or Vector3.zero), true),
 		mm = mm,
 		time = opts.time or 0,
-		handheld = opts.handheld or 0.12,
+		handheld = opts.handheld or 0.04,
 		smooth = opts.smooth,
 		dutch = opts.dutch,
 		dof = opts.dof or ((size == "CU" or size == "ECU" or size == "MCU") and 0.35 or 0.15),
@@ -861,7 +912,7 @@ function Kit.ots(over, onto, size, opts)
 		look = Kit.on(onto, "Head", Vector3.new(0, -0.5, 0)),
 		mm = mm,
 		time = 0,
-		handheld = opts.handheld or 0.1,
+		handheld = opts.handheld or 0.04,
 		dof = 0.3,
 		focusRadius = 2.5,
 	})
@@ -883,7 +934,7 @@ function Kit.two(a, b, size, opts)
 		look = mid,
 		mm = mm,
 		time = opts.time or 0,
-		handheld = opts.handheld or 0.08,
+		handheld = opts.handheld or 0.03,
 		dof = 0.12,
 		focusRadius = 4,
 	})

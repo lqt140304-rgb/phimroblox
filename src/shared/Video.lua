@@ -66,55 +66,219 @@ function Video.run(Kit)
 	end
 	box("FarSidewalk", Vector3.new(200, 0.3, 8), P(0, 0.15, -55), "#b9a98f", Enum.Material.Brick)
 
-	-- nhà cao tầng bao quanh quảng trường
-	local COLORS = { "#e3c06a", "#cfd6b0", "#b9cdd6", "#e0a8a0", "#e6d7b8", "#c9b8d9", "#a8c4a0", "#d98f6a" }
-	for i = 0, 9 do
-		local h = 30 + (i * 13) % 30
-		local b = box("Building", Vector3.new(12, h, 14), P(-58 + i * 13, h / 2, 64), COLORS[(i % #COLORS) + 1], Enum.Material.Concrete)
-		for fl = 1, math.floor(h / 6) - 1 do
-			for k = -1, 1 do
-				box("Win", Vector3.new(2.4, 2.8, 0.2), b.CFrame * CFrame.new(k * 3.6, -h / 2 + fl * 6, -7.05), "#5d7590", Enum.Material.Glass, { Transparency = 0.2 })
+	-- công cụ dựng chi tiết
+	local function wedge(name, size, cf, color, material)
+		local w = Instance.new("WedgePart")
+		w.Name = name
+		w.Anchored = true
+		w.Size = size
+		w.CFrame = cf
+		w.Color = Kit.hex(color)
+		w.Material = material or Enum.Material.SmoothPlastic
+		w.TopSurface, w.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
+		w.Parent = Kit.SET
+		return w
+	end
+	local rng = Random.new(42)
+	local COLORS = { "#e3c06a", "#cfd6b0", "#b9cdd6", "#e0a8a0", "#e6d7b8", "#c9b8d9", "#a8c4a0", "#d98f6a", "#f0e0c0", "#bcd4c4" }
+	local SHOPNAMES = { "TẠP HOÁ", "TRÀ SỮA", "PHỞ BÒ", "BÁNH MÌ", "ĐIỆN THOẠI", "CƠM TẤM", "NHÀ THUỐC", "HIỆU SÁCH", "CAFE", "BÚN CHẢ", "SỬA XE", "KÍNH MẮT", "TIỆM BÁNH", "SPA", "VĂN PHÒNG PHẨM" }
+	local AWNING = { { "#c8322f", "#f2f2f2" }, { "#2f6ab0", "#f2f2f2" }, { "#2f7a4a", "#f2e6c8" }, { "#e2a32b", "#7a3a1a" } }
+
+	-- nhà ống kiểu Việt Nam: cửa hàng tầng trệt, mái hiên sọc, biển hiệu, ban công, điều hoà, bồn nước inox
+	local function vnHouse(i, x, z, faceDir)
+		local w = 8 + rng:NextInteger(0, 3)
+		local floors = rng:NextInteger(3, 6)
+		local h = 8.5 + floors * 4.8 + 1
+		local d = 12
+		local col = COLORS[(i % #COLORS) + 1]
+		box("House", Vector3.new(w, h, d), P(x, h / 2, z), col, Enum.Material.Plaster)
+		local fz = z + faceDir * (d / 2)
+		local function F(dx, y, dz)
+			return P(x + dx, y, fz + faceDir * dz)
+		end
+		local face = faceDir < 0 and Enum.NormalId.Front or Enum.NormalId.Back
+		-- tầng trệt
+		box("ShopFront", Vector3.new(w - 1.2, 6.2, 0.2), F(0, 3.1, 0.05), "#2b2622")
+		box("ShopLight", Vector3.new(w - 2, 0.15, 0.15), F(0, 6, 0.3), "#fff0c8", Enum.Material.Neon)
+		box("Shutter", Vector3.new(w - 1.3, 2, 0.15), F(0, 5.2, 0.2), "#9aa0a4", Enum.Material.DiamondPlate)
+		for k = 0, 2 do
+			box("Goods", Vector3.new(1.4, 1.2 + k * 0.4, 1.2), F(-w / 2 + 1.6 + k * 1.8, 0.6 + k * 0.2, 1.2), ({ "#d64545", "#e8c547", "#4a78b8" })[k + 1], Enum.Material.Cardboard)
+		end
+		local aw = AWNING[(i % #AWNING) + 1]
+		for k = 0, math.floor(w / 1.2) - 1 do
+			box("Awning", Vector3.new(1.2, 0.15, 3), CFrame.new(F(-w / 2 + 0.6 + k * 1.2, 7.1, 1.4)) * CFrame.Angles(rad(faceDir * -14), 0, 0), k % 2 == 0 and aw[1] or aw[2], Enum.Material.Fabric)
+		end
+		local board = box("Sign", Vector3.new(w - 0.8, 1.6, 0.3), F(0, 8.6, 0.3), i % 2 == 0 and "#b3262e" or "#1f4e79")
+		sign(board, SHOPNAMES[(i % #SHOPNAMES) + 1], face, { color = Color3.fromRGB(255, 236, 170), font = Enum.Font.GothamBlack, glow = true })
+		-- các tầng trên
+		for fl = 1, floors do
+			local y = 9 + fl * 4.8
+			box("WinFrame", Vector3.new(w * 0.55, 3.2, 0.25), F(0, y, 0.05), "#f2efe6")
+			box("WinGlass", Vector3.new(w * 0.55 - 0.5, 2.7, 0.1), F(0, y, 0.2), "#3d5570", Enum.Material.Glass, { Reflectance = 0.15 })
+			box("ShutterL", Vector3.new(0.9, 3.2, 0.15), F(-w * 0.275 - 0.5, y, 0.15), "#4d7a5a", Enum.Material.Wood)
+			box("ShutterR", Vector3.new(0.9, 3.2, 0.15), F(w * 0.275 + 0.5, y, 0.15), "#4d7a5a", Enum.Material.Wood)
+			box("Balcony", Vector3.new(w - 0.6, 0.3, 1.8), F(0, y - 1.9, 0.9), "#d8d2c4", Enum.Material.Concrete)
+			box("Rail", Vector3.new(w - 0.6, 1.2, 0.12), F(0, y - 1.2, 1.75), "#2b2b2b", Enum.Material.Metal, { Transparency = 0.15 })
+			box("AC", Vector3.new(1.6, 1.1, 0.8), F(w / 2 - 1.1, y + 0.9, 0.5), "#e8e8e8", Enum.Material.Metal)
+			cyl("ACFan", 0.05, 0.8, CFrame.new(F(w / 2 - 1.1, y + 0.9, 0.92)) * CFrame.Angles(rad(90), 0, 0), "#555555")
+			if rng:NextNumber() < 0.6 then
+				ball("Plant", 1, F(-w / 2 + 1, y - 1.3, 1.2), "#4f7d3d", Enum.Material.Grass)
+				box("PlantPot", Vector3.new(0.8, 0.6, 0.8), F(-w / 2 + 1, y - 1.75, 1.2), "#c46a4a", Enum.Material.Concrete)
+			end
+			if rng:NextNumber() < 0.35 then
+				for k = 0, 2 do
+					box("Laundry", Vector3.new(0.9, 1.1, 0.05), F(-1 + k * 1.1, y - 0.2, 1.6), ({ "#e8e8e8", "#d64545", "#4a78b8", "#e8c547" })[rng:NextInteger(1, 4)], Enum.Material.Fabric)
+				end
+			end
+		end
+		-- mái: bồn nước inox nằm ngang + ăng ten
+		box("Parapet", Vector3.new(w, 1, d), P(x, h + 0.5, z), col, Enum.Material.Plaster)
+		local tank = cyl("WaterTank", 3, 1.6, CFrame.new(P(x - 1, h + 2, z)) * CFrame.Angles(0, 0, rad(90)), "#c8ccd0", Enum.Material.Metal)
+		tank.CFrame = CFrame.new(P(x - 1, h + 1.9, z)) * CFrame.Angles(0, rad(90), 0)
+		box("TankStand", Vector3.new(2, 0.9, 1.2), P(x - 1, h + 1.1, z), "#555555", Enum.Material.Metal)
+		box("Antenna", Vector3.new(0.1, 3, 0.1), P(x + w / 2 - 1, h + 2.5, z), "#333333", Enum.Material.Metal)
+	end
+	for i = 0, 13 do
+		vnHouse(i, -62 + i * 9.6, 64, -1)
+	end
+	for i = 0, 13 do
+		vnHouse(i + 5, -62 + i * 9.6, -66, 1)
+	end
+	for _, x in ipairs({ -70, 70 }) do
+		box("SideBlock", Vector3.new(12, 36, 110), P(x, 18, 0), "#bfb3a0", Enum.Material.Concrete)
+		for fl = 1, 5 do
+			for k = -4, 4 do
+				box("SideWin", Vector3.new(0.2, 2.6, 3), P(x - math.sign(x) * 6.05, fl * 6, k * 11), "#3d5570", Enum.Material.Glass, { Reflectance = 0.15 })
 			end
 		end
 	end
-	for i = 0, 8 do
-		local h = 20 + (i * 7) % 18
-		box("Shop", Vector3.new(9, h, 10), P(-56 + i * 14, h / 2, -66), COLORS[((i + 3) % #COLORS) + 1], Enum.Material.Plaster)
-		local s = box("ShopSign", Vector3.new(7, 1.4, 0.3), P(-56 + i * 14, 6, -60.8), i % 2 == 0 and "#b3262e" or "#1f4e79")
-		sign(s, ({ "TẠP HOÁ", "TRÀ SỮA", "PHỞ", "BÁNH MÌ", "ĐIỆN THOẠI", "CƠM", "NHÀ THUỐC", "SÁCH", "CAFE" })[i + 1], Enum.NormalId.Back, { color = Color3.fromRGB(255, 236, 170), font = Enum.Font.GothamBold })
-	end
-	for _, x in ipairs({ -68, 68 }) do
-		box("SideBlock", Vector3.new(12, 36, 90), P(x, 18, 12), "#bfb3a0", Enum.Material.Concrete)
-	end
 
-	-- cây xanh + đèn đường + ghế
+	-- cây xanh nhiều tầng lá + bồn cây
 	local function tree(x, z, s)
 		s = s or 1
-		cyl("Trunk", 7 * s, 0.9 * s, P(x, 3.5 * s, z), "#5b4636", Enum.Material.Wood)
-		for k = 0, 5 do
-			local a = rad(k * 60)
-			ball("Leaves", 4.2 * s, P(x + math.cos(a) * 1.6 * s, 8 * s + (k % 2) * 1.2, z + math.sin(a) * 1.6 * s), k % 2 == 0 and "#4f7d3d" or "#5f9248", Enum.Material.Grass)
+		local base = CFrame.new(P(x, 0, z))
+		local asset = Kit.asset("Tree", base * CFrame.Angles(0, rng:NextNumber(0, 6), 0), nil, math.floor(x + z))
+		if asset then
+			return
+		end
+		cyl("Planter", 0.8, 3.4 * s, P(x, 0.4, z), "#a9a294", Enum.Material.Concrete)
+		cyl("Soil", 0.1, 3 * s, P(x, 0.82, z), "#4a3a2a", Enum.Material.Ground)
+		cyl("Trunk", 8 * s, 0.9 * s, P(x, 4 * s, z), "#5b4636", Enum.Material.Wood)
+		for k = 0, 2 do
+			cyl("Branch", 3 * s, 0.35 * s, CFrame.new(P(x, 7 * s, z)) * CFrame.Angles(0, rad(k * 120), rad(40)) * CFrame.new(0, 1.2 * s, 0), "#5b4636", Enum.Material.Wood)
+		end
+		local greens = { "#3f6e32", "#4f7d3d", "#5f9248", "#6aa050" }
+		for k = 0, 11 do
+			local a = rad(k * 47 + x)
+			local r = (k < 6 and 2.2 or 1.2) * s
+			ball("Leaves", (3.2 + (k % 3) * 0.7) * s, P(x + math.cos(a) * r, (8.5 + (k % 4) * 0.9 + (k >= 6 and 1.8 or 0)) * s, z + math.sin(a) * r), greens[(k % #greens) + 1], Enum.Material.Grass)
 		end
 	end
-	for _, p in ipairs({ { -50, 40 }, { -40, 48 }, { 48, 44 }, { 55, 30 }, { -54, -20 }, { 54, -18 }, { 20, 46 }, { -14, 50 } }) do
-		tree(p[1], p[2], 1 + (p[1] % 3) * 0.1)
+	for _, p in ipairs({ { -50, 40 }, { -40, 48 }, { 48, 44 }, { 55, 30 }, { -54, -20 }, { 54, -18 }, { 20, 46 }, { -14, 50 }, { -58, 10 }, { 58, 8 }, { -26, -24 }, { 26, -24 }, { 0, 48 } }) do
+		tree(p[1], p[2], 0.95 + (math.abs(p[1]) % 3) * 0.08)
 	end
-	box("Grass", Vector3.new(30, 0.2, 18), P(42, 0.1, 38), "#6a9a4a", Enum.Material.Grass)
-	box("Grass", Vector3.new(30, 0.2, 18), P(-44, 0.1, 40), "#6a9a4a", Enum.Material.Grass)
-	for _, x in ipairs({ -40, -14, 14, 40 }) do
-		box("LampPole", Vector3.new(0.4, 12, 0.4), P(x, 6, -27), "#2b2b2b", Enum.Material.Metal)
-		ball("LampHead", 1, P(x, 12.2, -27), "#fff2d0", Enum.Material.Neon)
+	-- thảm cỏ + bồn hoa + hàng rào cây bụi
+	local function lawn(cx, cz, sx, sz)
+		box("Grass", Vector3.new(sx, 0.3, sz), P(cx, 0.15, cz), "#5f8f42", Enum.Material.Grass)
+		box("Curb", Vector3.new(sx + 0.6, 0.5, 0.3), P(cx, 0.25, cz - sz / 2), "#a9a294", Enum.Material.Concrete)
+		box("Curb", Vector3.new(sx + 0.6, 0.5, 0.3), P(cx, 0.25, cz + sz / 2), "#a9a294", Enum.Material.Concrete)
+		for k = 0, math.floor(sx / 2.2) do
+			ball("Hedge", 1.8, P(cx - sx / 2 + 0.9 + k * 2.2, 0.9, cz + sz / 2 - 0.9), "#3f6e32", Enum.Material.Grass)
+		end
+		for k = 1, 14 do
+			ball("Flower", 0.45, P(cx + rng:NextNumber(-sx / 2 + 1, sx / 2 - 1), 0.45, cz + rng:NextNumber(-sz / 2 + 1, sz / 2 - 2.5)), ({ "#e84a5f", "#f7d046", "#ffffff", "#c86fd8", "#ff8c42" })[rng:NextInteger(1, 5)], Enum.Material.SmoothPlastic)
+		end
 	end
-	for _, x in ipairs({ -18, 18 }) do
-		box("Bench", Vector3.new(6, 0.4, 1.6), P(x, 1.6, 26), "#8b6a4a", Enum.Material.Wood)
-		box("BenchBack", Vector3.new(6, 1.6, 0.3), P(x, 2.6, 26.8), "#8b6a4a", Enum.Material.Wood)
-		box("BenchLeg", Vector3.new(5.6, 1.4, 1.2), P(x, 0.7, 26), "#3a3a3a", Enum.Material.Metal)
+	lawn(42, 38, 30, 18)
+	lawn(-44, 40, 26, 16)
+	lawn(30, 10, 14, 10)
+
+	-- đèn đường, ghế, thùng rác, cột chắn, ki-ốt, nhà chờ xe buýt, đèn giao thông
+	for _, x in ipairs({ -48, -24, 0, 24, 48 }) do
+		if not Kit.asset("Lamp", CFrame.new(P(x, 0.3, -28.5)), nil, x) then
+			box("LampPole", Vector3.new(0.4, 12, 0.4), P(x, 6, -28.5), "#2b2b2b", Enum.Material.Metal)
+			box("LampArm", Vector3.new(0.25, 0.25, 2.4), P(x, 11.9, -29.6), "#2b2b2b", Enum.Material.Metal)
+			box("LampHead", Vector3.new(0.8, 0.3, 1.4), P(x, 11.7, -30.6), "#fff2d0", Enum.Material.Neon)
+		end
+		cyl("Bin", 1.6, 1.1, P(x + 3, 0.8, -28.5), "#2f7a4a", Enum.Material.Metal)
+		for k = -1, 1 do
+			cyl("Bollard", 1.2, 0.4, P(x + 6 + k * 1.5, 0.6, -33.2), "#3a3a3a", Enum.Material.Metal)
+		end
 	end
+	for _, p in ipairs({ { -18, 26 }, { 18, 26 }, { -40, 30 }, { 40, 24 } }) do
+		if not Kit.asset("Bench", CFrame.new(P(p[1], 0, p[2])), nil, p[1]) then
+			box("Bench", Vector3.new(6, 0.4, 1.6), P(p[1], 1.6, p[2]), "#8b6a4a", Enum.Material.WoodPlanks)
+			box("BenchBack", Vector3.new(6, 1.6, 0.3), P(p[1], 2.6, p[2] + 0.8), "#8b6a4a", Enum.Material.WoodPlanks)
+			box("BenchLeg", Vector3.new(0.3, 1.4, 1.4), P(p[1] - 2.6, 0.7, p[2]), "#2b2b2b", Enum.Material.Metal)
+			box("BenchLeg", Vector3.new(0.3, 1.4, 1.4), P(p[1] + 2.6, 0.7, p[2]), "#2b2b2b", Enum.Material.Metal)
+		end
+	end
+	-- ki-ốt báo + nhà chờ xe buýt
+	box("Kiosk", Vector3.new(5, 6, 4), P(-36, 3, -22), "#2f6ab0", Enum.Material.Metal)
+	box("KioskRoof", Vector3.new(6, 0.4, 5), P(-36, 6.2, -22), "#f2f2f2", Enum.Material.Metal)
+	box("KioskWindow", Vector3.new(4, 2.6, 0.2), P(-36, 3.6, -24.05), "#cfe6ee", Enum.Material.Glass, { Transparency = 0.4 })
+	box("BusRoof", Vector3.new(10, 0.3, 3.6), P(48, 7.6, -30), "#2b2b2b", Enum.Material.Metal)
+	box("BusBack", Vector3.new(10, 6.5, 0.15), P(48, 4, -28.4), "#cfe6ee", Enum.Material.Glass, { Transparency = 0.5 })
+	box("BusPostL", Vector3.new(0.3, 7.6, 0.3), P(43.2, 3.8, -28.5), "#2b2b2b", Enum.Material.Metal)
+	box("BusPostR", Vector3.new(0.3, 7.6, 0.3), P(52.8, 3.8, -28.5), "#2b2b2b", Enum.Material.Metal)
+	box("BusBench", Vector3.new(8, 0.4, 1.2), P(48, 1.6, -29.2), "#8b6a4a", Enum.Material.WoodPlanks)
+	local busAd = box("BusAd", Vector3.new(3.5, 5, 0.1), P(52.5, 4, -30), "#ffffff", Enum.Material.SmoothPlastic)
+	busAd.CFrame = CFrame.new(P(52.6, 4, -30)) * CFrame.Angles(0, rad(90), 0)
+	sign(busAd, "TRỌNG LỰC\n-50%\nBẠN ĐÃ SẴN SÀNG?", Enum.NormalId.Front, { color = Color3.fromRGB(200, 40, 40), font = Enum.Font.GothamBlack })
+	-- đèn giao thông ở vạch sang đường
+	for _, p in ipairs({ { -12, -32.5, 1 }, { 4, -51.5, -1 } }) do
+		local base = P(p[1], 0, p[2])
+		box("SignalPole", Vector3.new(0.4, 9, 0.4), base + Vector3.new(0, 4.5, 0), "#2b2b2b", Enum.Material.Metal)
+		box("SignalBox", Vector3.new(1, 3, 0.9), base + Vector3.new(0, 8.4, 0), "#1d1d1d", Enum.Material.Metal)
+		ball("Red", 0.6, base + Vector3.new(0, 9.4, -0.45 * p[3]), "#ff3b30", Enum.Material.Neon)
+		ball("Yellow", 0.6, base + Vector3.new(0, 8.4, -0.45 * p[3]), "#4a3a10", Enum.Material.SmoothPlastic)
+		ball("Green", 0.6, base + Vector3.new(0, 7.4, -0.45 * p[3]), "#103a10", Enum.Material.SmoothPlastic)
+	end
+	-- dây điện chằng chịt kiểu phố Việt
+	for _, x in ipairs({ -56, -28, 28, 56 }) do
+		box("Pole", Vector3.new(0.6, 16, 0.6), P(x, 8, -58.5), "#8d8d88", Enum.Material.Concrete)
+		for k = 0, 5 do
+			local wire = box("Wire", Vector3.new(28.2, 0.06, 0.06), P(x + 14, 14.6 - k * 0.45, -58.5 + k * 0.15), "#111111", nil, { CanCollide = false })
+			wire.CFrame = wire.CFrame * CFrame.Angles(0, 0, rad((k % 2 == 0) and 1.2 or -1.2))
+		end
+	end
+	-- xe máy đỗ dọc vỉa hè
+	local function motorbike(x, z, col, yaw)
+		local cf = CFrame.new(P(x, 0, z)) * CFrame.Angles(0, rad(yaw or 0), 0)
+		if Kit.asset("Motorbike", cf, 4.5, math.floor(x)) then
+			return
+		end
+		box("MotoBody", Vector3.new(3, 1.1, 0.7), cf * CFrame.new(0, 1.5, 0), col, Enum.Material.Metal)
+		box("MotoSeat", Vector3.new(1.6, 0.35, 0.75), cf * CFrame.new(-0.3, 2.2, 0), "#1d1d1d", Enum.Material.Leather)
+		box("MotoFront", Vector3.new(0.6, 1.6, 0.8), cf * CFrame.new(1.4, 2, 0) * CFrame.Angles(0, 0, rad(-15)), col, Enum.Material.Metal)
+		box("MotoBar", Vector3.new(0.15, 0.15, 1.6), cf * CFrame.new(1.6, 2.9, 0), "#2b2b2b", Enum.Material.Metal)
+		ball("MotoLight", 0.4, cf * CFrame.new(1.8, 2.6, 0), "#fff2c0", Enum.Material.Neon)
+		for _, wx in ipairs({ -1.3, 1.5 }) do
+			local wh = box("MotoWheel", Vector3.new(0.35, 1.3, 1.3), cf * CFrame.new(wx, 0.65, 0) * CFrame.Angles(0, rad(90), 0), "#1a1a1a")
+			wh.Shape = Enum.PartType.Cylinder
+		end
+	end
+	local MOTO = { "#c8322f", "#2a4d8f", "#e6e6e6", "#2f2f2f", "#e2a32b", "#2f7a4a" }
+	for k = 0, 9 do
+		motorbike(-56 + k * 5.2 + (k > 4 and 40 or 0), -59.5, MOTO[(k % #MOTO) + 1], 90)
+	end
+	for k = 0, 5 do
+		motorbike(-60 + k * 2.4, -31.5, MOTO[((k + 2) % #MOTO) + 1], 90)
+	end
+	-- mây
+	pcall(function()
+		local clouds = workspace.Terrain:FindFirstChildOfClass("Clouds") or Instance.new("Clouds")
+		clouds.Cover, clouds.Density = 0.55, 0.6
+		clouds.Parent = workspace.Terrain
+	end)
 
 	-- đài phun nước giữa quảng trường
 	local F = P(0, 0, 14)
 	cyl("Basin", 1.4, 16, F + Vector3.new(0, 0.7, 0), "#c9c2b4", Enum.Material.Marble)
-	cyl("Water", 0.2, 15, F + Vector3.new(0, 1.35, 0), "#5aa6c8", Enum.Material.Glass, { Transparency = 0.25 })
+	cyl("Water", 0.2, 15, F + Vector3.new(0, 1.35, 0), "#3f8fb8", Enum.Material.Glass, { Transparency = 0.15, Reflectance = 0.35 })
+	cyl("BasinRim", 0.3, 16.6, F + Vector3.new(0, 1.5, 0), "#e6e0d2", Enum.Material.Marble)
+	cyl("BasinInner", 0.35, 14.8, F + Vector3.new(0, 1.5, 0), "#3f8fb8", Enum.Material.Glass, { Transparency = 0.15, Reflectance = 0.35 })
+	cyl("Tier", 0.5, 5, F + Vector3.new(0, 3.2, 0), "#d8d2c4", Enum.Material.Marble)
 	cyl("Column", 3, 1.6, F + Vector3.new(0, 2.5, 0), "#d8d2c4", Enum.Material.Marble)
 	local nozzle = cyl("Nozzle", 0.4, 0.8, F + Vector3.new(0, 4.2, 0), "#9aa3a8", Enum.Material.Metal)
 	local jet = Instance.new("ParticleEmitter")
@@ -193,22 +357,39 @@ function Video.run(Kit)
 	thermoText.Parent = thermo
 	Instance.new("UICorner", thermoText).CornerRadius = UDim.new(0, 12)
 
-	-- ô tô
+	-- ô tô: dùng model "Car" trong PhimAssets nếu có, không thì tự dựng (mui, kính lái nghiêng, gương, biển số, mâm xe)
 	local function car(name, cf, color)
-		local body = box(name, Vector3.new(9, 2, 4.2), cf * CFrame.new(0, 1.8, 0), color, Enum.Material.SmoothPlastic)
+		local asset = Kit.asset("Car", cf, 10, #name)
+		if asset then
+			asset.Name = name
+			return asset
+		end
+		local body = box(name, Vector3.new(9.6, 1.6, 4.3), cf * CFrame.new(0, 1.7, 0), color, Enum.Material.SmoothPlastic)
 		local parts = {
-			box("Cabin", Vector3.new(5, 1.8, 3.9), cf * CFrame.new(-0.5, 3.7, 0), color),
-			box("Glass", Vector3.new(4.6, 1.5, 4.0), cf * CFrame.new(-0.5, 3.75, 0), "#2a3440", Enum.Material.Glass, { Transparency = 0.2 }),
-			box("LightF", Vector3.new(0.1, 0.4, 0.8), cf * CFrame.new(4.52, 2.1, 1.4), "#fff2c0", Enum.Material.Neon),
-			box("LightF2", Vector3.new(0.1, 0.4, 0.8), cf * CFrame.new(4.52, 2.1, -1.4), "#fff2c0", Enum.Material.Neon),
-			box("LightB", Vector3.new(0.1, 0.4, 0.8), cf * CFrame.new(-4.52, 2.1, 1.4), "#c41e1e", Enum.Material.Neon),
-			box("LightB2", Vector3.new(0.1, 0.4, 0.8), cf * CFrame.new(-4.52, 2.1, -1.4), "#c41e1e", Enum.Material.Neon),
+			box("Skirt", Vector3.new(9.4, 0.5, 4.2), cf * CFrame.new(0, 0.85, 0), "#2a2a2a"),
+			box("Roof", Vector3.new(3.4, 0.25, 3.9), cf * CFrame.new(-0.6, 4.05, 0), color),
+			box("SideGlass", Vector3.new(3.4, 1.4, 4.0), cf * CFrame.new(-0.6, 3.2, 0), "#1f2a36", Enum.Material.Glass, { Reflectance = 0.25 }),
+			wedge("Windshield", Vector3.new(4.0, 1.5, 1.5), cf * CFrame.new(1.85, 3.25, 0) * CFrame.Angles(0, rad(-90), 0), "#1f2a36", Enum.Material.Glass),
+			wedge("RearGlass", Vector3.new(4.0, 1.5, 1.2), cf * CFrame.new(-2.9, 3.25, 0) * CFrame.Angles(0, rad(90), 0), "#1f2a36", Enum.Material.Glass),
+			box("BumperF", Vector3.new(0.4, 0.6, 4.4), cf * CFrame.new(4.85, 1.2, 0), "#2a2a2a"),
+			box("BumperB", Vector3.new(0.4, 0.6, 4.4), cf * CFrame.new(-4.85, 1.2, 0), "#2a2a2a"),
+			box("Plate", Vector3.new(0.1, 0.45, 1.4), cf * CFrame.new(5.07, 1.2, 0), "#f2f2f2"),
+			box("LightF", Vector3.new(0.12, 0.35, 0.9), cf * CFrame.new(4.82, 2.1, 1.5), "#fff6d8", Enum.Material.Neon),
+			box("LightF2", Vector3.new(0.12, 0.35, 0.9), cf * CFrame.new(4.82, 2.1, -1.5), "#fff6d8", Enum.Material.Neon),
+			box("LightB", Vector3.new(0.12, 0.35, 0.9), cf * CFrame.new(-4.82, 2.1, 1.5), "#d4141e", Enum.Material.Neon),
+			box("LightB2", Vector3.new(0.12, 0.35, 0.9), cf * CFrame.new(-4.82, 2.1, -1.5), "#d4141e", Enum.Material.Neon),
+			box("MirrorL", Vector3.new(0.4, 0.3, 0.5), cf * CFrame.new(1.4, 2.9, 2.35), color),
+			box("MirrorR", Vector3.new(0.4, 0.3, 0.5), cf * CFrame.new(1.4, 2.9, -2.35), color),
+			box("Handle", Vector3.new(0.5, 0.1, 0.05), cf * CFrame.new(-0.4, 2.3, 2.17), "#c0c0c0", Enum.Material.Metal),
 		}
-		for _, wx in ipairs({ -3, 3 }) do
-			for _, wz in ipairs({ -2.1, 2.1 }) do
-				local w = box("Wheel", Vector3.new(0.8, 2, 2), cf * CFrame.new(wx, 1, wz) * CFrame.Angles(0, rad(90), 0), "#1a1a1a")
+		for _, wx in ipairs({ -3.1, 3.1 }) do
+			for _, wz in ipairs({ -2.05, 2.05 }) do
+				local w = box("Tire", Vector3.new(0.9, 2.1, 2.1), cf * CFrame.new(wx, 1.05, wz) * CFrame.Angles(0, rad(90), 0), "#161616")
 				w.Shape = Enum.PartType.Cylinder
 				table.insert(parts, w)
+				local rimPart = box("Hub", Vector3.new(0.95, 1.2, 1.2), w.CFrame, "#c8ccd0", Enum.Material.Metal)
+				rimPart.Shape = Enum.PartType.Cylinder
+				table.insert(parts, rimPart)
 			end
 		end
 		local m = Instance.new("Model")
@@ -256,7 +437,9 @@ function Video.run(Kit)
 	end
 	local carA = car("CarA", CFrame.new(P(-70, 0, -38)), "#e6e6e6")
 	local carB = car("CarB", CFrame.new(P(-70, 0, -46)), "#c8322f")
-	car("Parked", CFrame.new(P(-6, 0, -30.5)) * CFrame.Angles(0, 0, 0), "#2a4d8f")
+	car("Parked", CFrame.new(P(-6, 0, -30.5)), "#2a4d8f")
+	car("Parked2", CFrame.new(P(22, 0, -54)) * CFrame.Angles(0, rad(180), 0), "#e2a32b")
+	car("Parked3", CFrame.new(P(-40, 0, -54)) * CFrame.Angles(0, rad(180), 0), "#3a3a3a")
 
 	------------------------------------------------------------------ DIỄN VIÊN
 	local A = {}
