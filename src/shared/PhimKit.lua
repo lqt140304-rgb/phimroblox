@@ -957,6 +957,7 @@ Kit.POSES = {
 	sellFlowers = { RightShoulder = { 60, 0, 0 }, RightElbow = { 40, 0, 0 } },
 }
 function Kit.pose(a, name, t, wait)
+	a.posed = name ~= "rest" and Kit.POSES[name] ~= nil and next(Kit.POSES[name]) ~= nil
 	local p = Kit.POSES[name] or {}
 	for jointName, j in pairs(a.joints) do
 		if jointName:find("Shoulder") or jointName:find("Elbow") then
@@ -1030,7 +1031,81 @@ function Kit.gesture(a, name, waitDone)
 	end
 end
 
--- "sống động khi đứng yên": thỉnh thoảng nhân vật khẽ quay đầu, ngẩng/cúi nhẹ
+-- "SỐNG ĐỘNG": nhân vật tự chọn chỗ nhìn (người bên cạnh, máy quay, mặt đất, bầu trời), đầu quay theo mượt,
+-- mắt liếc trước; thỉnh thoảng làm cử chỉ lặt vặt (gãi đầu, chống nạnh, khoanh tay, gật gù…).
+Kit.GESTURES.scratch = { { 0.35, { Neck = { -6, 0, -8 }, RightShoulder = { 150, 0, 30 }, RightElbow = { 110, 0, 0 } } }, { 0.25, { Neck = { -6, 0, -8 }, RightShoulder = { 150, 0, 30 }, RightElbow = { 125, 0, 0 } } }, { 0.25, { Neck = { -6, 0, -8 }, RightShoulder = { 150, 0, 30 }, RightElbow = { 105, 0, 0 } } }, { 0.25, { Neck = { -6, 0, -8 }, RightShoulder = { 150, 0, 30 }, RightElbow = { 125, 0, 0 } } }, { 0.4, {} } }
+Kit.GESTURES.hips = { { 0.4, { RightShoulder = { 10, 0, -40 }, LeftShoulder = { 10, 0, 40 }, RightElbow = { 80, 0, 0 }, LeftElbow = { 80, 0, 0 } } }, { 2.2, { RightShoulder = { 10, 0, -40 }, LeftShoulder = { 10, 0, 40 }, RightElbow = { 80, 0, 0 }, LeftElbow = { 80, 0, 0 } } }, { 0.4, {} } }
+Kit.GESTURES.crossArms = { { 0.4, { RightShoulder = { 45, 0, 30 }, LeftShoulder = { 45, 0, -30 }, RightElbow = { 95, 0, 0 }, LeftElbow = { 95, 0, 0 } } }, { 2.4, { RightShoulder = { 45, 0, 30 }, LeftShoulder = { 45, 0, -30 }, RightElbow = { 95, 0, 0 }, LeftElbow = { 95, 0, 0 } } }, { 0.4, {} } }
+Kit.GESTURES.shift = { { 0.6, { Waist = { 0, 8, 4 } } }, { 1.2, { Waist = { 0, 8, 4 } } }, { 0.6, { Waist = { 0, -6, -3 } } }, { 0.8, {} } }
+Kit.GESTURES.smallNod = { { 0.2, { Neck = { -9, 0, 0 } } }, { 0.25, {} } }
+local IDLE_GESTURES = { "scratch", "hips", "crossArms", "shift", "smallNod", "shrug", "shift", "smallNod" }
+
+-- cảm xúc theo thẻ lời kể → biểu cảm khuôn mặt
+Kit.MOOD_FACE = {
+	excited = { "happy", "laugh" }, playful = { "happy", "smile" }, laughs = { "laugh" }, warm = { "smile", "happy" },
+	curious = { "confused", "neutral" }, calm = { "neutral", "smile" }, serious = { "serious", "worried" },
+	whispers = { "worried", "dread" }, dramatic = { "shocked", "scared" }, shouting = { "shocked", "scared" },
+	sighs = { "tired", "sad" }, sad = { "sad", "hurt" },
+}
+function Kit.setMood(mood)
+	local faces = Kit.MOOD_FACE[mood or ""]
+	if not faces then
+		return
+	end
+	local rng = Random.new()
+	for _, a in pairs(Kit.A) do
+		if a.model.Parent and not a.lockFace then
+			Kit.expr(a, faces[rng:NextInteger(1, #faces)])
+		end
+	end
+end
+
+-- đặt chỗ nhìn: Vector3, hoặc nhân vật khác, hoặc "camera"; nil = tự do
+function Kit.lookAt(a, target)
+	a.lookTarget = target
+	a.lookUntil = os.clock() + 999
+end
+
+local function targetPos(t)
+	if t == "camera" then
+		return workspace.CurrentCamera.CFrame.Position
+	elseif typeof(t) == "Vector3" then
+		return t
+	elseif type(t) == "table" and t.head then
+		return t.head.Position
+	end
+end
+
+function Kit._updateLook(dt)
+	local k = 1 - math.exp(-5 * dt)
+	for _, a in pairs(Kit.A) do
+		local neck = a.joints and a.joints.Neck
+		if neck and a.model.Parent and not a.busy then
+			local tp = targetPos(a.lookTarget)
+			local yaw, pitch = 0, 0
+			if tp then
+				local torso = a.model:FindFirstChild("UpperTorso")
+				if torso then
+					local d = torso.CFrame:VectorToObjectSpace(tp - a.head.Position)
+					yaw = math.clamp(math.atan2(-d.X, -d.Z), -1.0, 1.0)
+					local horiz = math.sqrt(d.X * d.X + d.Z * d.Z)
+					pitch = math.clamp(math.atan2(d.Y, horiz), -0.5, 0.6)
+					if math.abs(math.atan2(-d.X, -d.Z)) > 2.2 then
+						yaw, pitch = 0, 0 -- mục tiêu ở sau lưng: không vặn cổ
+					end
+				end
+			end
+			a._yaw = (a._yaw or 0) + (yaw - (a._yaw or 0)) * k
+			a._pitch = (a._pitch or 0) + (pitch - (a._pitch or 0)) * k
+			neck.motor.C0 = neck.c0 * CFrame.Angles(a._pitch, a._yaw, 0)
+			-- mắt liếc trước đầu một chút
+			if not a.lockGaze then
+				a.face:SetAttribute("Gaze", Vector2.new(math.clamp(-(yaw - a._yaw) * 4, -1, 1), math.clamp(-(pitch - a._pitch) * 4, -1, 1)))
+			end
+		end
+	end
+end
+
 function Kit.idleLife(on)
 	Kit._idle = on
 	if not on or Kit._idleRunning then
@@ -1040,26 +1115,55 @@ function Kit.idleLife(on)
 	task.spawn(function()
 		local rng = Random.new()
 		while Kit._idle do
+			local visible = {}
 			for _, a in pairs(Kit.A) do
-				local neck = a.joints and a.joints.Neck
-				if neck and a.model.Parent and not a.busy and rng:NextNumber() < 0.35 then
-					local goal = neck.c0 * CFrame.Angles(rad(rng:NextNumber(-6, 6)), rad(rng:NextNumber(-14, 14)), rad(rng:NextNumber(-3, 3)))
-					Kit.tw(neck.motor, rng:NextNumber(0.9, 1.6), { C0 = goal })
+				if a.model.Parent then
+					table.insert(visible, a)
+				end
+			end
+			for _, a in ipairs(visible) do
+				-- đổi chỗ nhìn mỗi vài giây
+				if os.clock() > (a.lookUntil or 0) then
+					local r = rng:NextNumber()
+					local other
+					for _ = 1, 4 do
+						local c = visible[rng:NextInteger(1, #visible)]
+						if c ~= a and (c.root.Position - a.root.Position).Magnitude < 30 then
+							other = c
+							break
+						end
+					end
+					if other and r < 0.5 then
+						a.lookTarget = other
+					elseif r < 0.62 then
+						a.lookTarget = "camera"
+					elseif r < 0.8 then
+						a.lookTarget = a.root.Position + a.root.CFrame.LookVector * 8 + Vector3.new(rng:NextNumber(-6, 6), -4, 0)
+					elseif r < 0.9 then
+						a.lookTarget = a.root.Position + a.root.CFrame.LookVector * 10 + Vector3.new(rng:NextNumber(-8, 8), 8, 0)
+					else
+						a.lookTarget = nil
+					end
+					a.lookUntil = os.clock() + rng:NextNumber(1.8, 4.5)
+				end
+				-- cử chỉ lặt vặt khi rảnh tay
+				if not a.busy and not a.posed and rng:NextNumber() < 0.12 then
+					Kit.gesture(a, IDLE_GESTURES[rng:NextInteger(1, #IDLE_GESTURES)])
 				end
 				local waist = a.joints and a.joints.Waist
-				if waist and a.model.Parent and not a.busy and rng:NextNumber() < 0.25 then
-					-- dồn trọng tâm, đung đưa nhẹ như đang thở
+				if waist and not a.busy and rng:NextNumber() < 0.25 then
 					local goal = waist.c0 * CFrame.Angles(rad(rng:NextNumber(-2, 3)), rad(rng:NextNumber(-6, 6)), rad(rng:NextNumber(-3, 3)))
 					Kit.tw(waist.motor, rng:NextNumber(1.4, 2.4), { C0 = goal })
 				end
 			end
-			task.wait(1.6)
+			task.wait(1.2)
 		end
 		Kit._idleRunning = false
 	end)
 end
 
 function Kit.resetPose(a)
+	a.posed = false
 	for _, j in pairs(a.joints) do
 		j.motor.C0 = j.c0
 	end
@@ -1069,6 +1173,7 @@ function Kit.expr(a, name)
 	a.face:SetAttribute("Expression", name)
 end
 function Kit.gaze(a, x, y)
+	a.lockGaze = (x or 0) ~= 0 or (y or 0) ~= 0
 	a.face:SetAttribute("Gaze", Vector2.new(x or 0, y or 0))
 end
 function Kit.tears(a, on)
@@ -1973,6 +2078,7 @@ function Kit._client()
 		local now = os.clock()
 		updateFaces(dt, now)
 		Kit._updateBlobs()
+		Kit._updateLook(dt)
 		if active then
 			updateCamera(dt, now)
 			hideMe()
