@@ -1122,6 +1122,32 @@ local function targetPos(t)
 	end
 end
 
+-- tay chân tự nhiên khi đứng: tay hơi dang, đung đưa theo nhịp thở (chỉ khi không làm cử chỉ / tư thế / đi)
+function Kit._updateIdleArms(now)
+	for _, a in pairs(Kit.A) do
+		if a.model.Parent and not a.busy and not a.posed then
+			local J = a.joints
+			local ph = now * 1.6 + (a._seed or 0)
+			if not a._seed then
+				a._seed = math.random() * 10
+			end
+			local sw = math.sin(ph) * 2.5
+			if J.RightShoulder then
+				J.RightShoulder.motor.C0 = J.RightShoulder.c0 * CFrame.Angles(rad(3 + sw), 0, rad(-6 - math.sin(ph * 0.5) * 1.5))
+			end
+			if J.LeftShoulder then
+				J.LeftShoulder.motor.C0 = J.LeftShoulder.c0 * CFrame.Angles(rad(3 - sw), 0, rad(6 + math.sin(ph * 0.5) * 1.5))
+			end
+			if J.RightElbow then
+				J.RightElbow.motor.C0 = J.RightElbow.c0 * CFrame.Angles(rad(10 + sw), 0, 0)
+			end
+			if J.LeftElbow then
+				J.LeftElbow.motor.C0 = J.LeftElbow.c0 * CFrame.Angles(rad(10 - sw), 0, 0)
+			end
+		end
+	end
+end
+
 function Kit._updateLook(dt)
 	local k = 1 - math.exp(-5 * dt)
 	for _, a in pairs(Kit.A) do
@@ -2127,6 +2153,7 @@ function Kit._client()
 		updateFaces(dt, now)
 		Kit._updateBlobs()
 		Kit._updateLook(dt)
+		Kit._updateIdleArms(now)
 		if active then
 			updateCamera(dt, now)
 			hideMe()

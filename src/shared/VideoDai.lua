@@ -218,35 +218,76 @@ function VD.run(Kit)
 				task.delay(g[3] or 0, Kit.gesture, who, g[2])
 			end
 		end
-		-- câu dài mà máy đứng yên một chỗ → giữa câu tự cắt sang người gần nhất (cận phản ứng) hoặc góc rộng hơn
-		if d.dur > 5.2 then
+		-- đổi góc tự động: câu dài thì cứ ~3 giây cắt sang góc khác (toàn cảnh nhóm ↔ trung cảnh một người),
+		-- chỉ khi trong lúc đó chương không tự đặt góc mới
+		if d.dur > 4 then
 			local id0 = Kit._shotId
-			task.delay(d.dur * 0.5, function()
-				if Kit._shotId ~= id0 then
-					return
-				end
-				local last = Kit._lastShot
-				local lookP = last and (typeof(last.look) == "Vector3" and last.look) or nil
-				local best, bd
-				for _, a in pairs(A) do
-					if a.model.Parent then
-						local dist = lookP and (a.root.Position - lookP).Magnitude or 0
-						if dist < 60 and (not bd or dist < bd) then
-							best, bd = a, dist
+			task.spawn(function()
+				local n = math.floor(d.dur / 3)
+				for k = 1, n - 1 do
+					task.wait(d.dur / n)
+					if Kit._shotId ~= id0 then
+						return
+					end
+					local vis = {}
+					for _, a in pairs(A) do
+						if a.model.Parent then
+							table.insert(vis, a)
 						end
 					end
-				end
-				if best then
-					Kit.frame(best, math.random() < 0.5 and "MCU" or "MS", { angle = math.random(-35, 35), mm = 40 })
-				elseif last and typeof(last.pos) == "Vector3" and lookP then
-					Kit.cam({ pos = lookP + (last.pos - lookP) * 1.8 + Vector3.new(0, 2, 0), look = lookP, fov = last.fov, time = 0 })
+					if #vis == 0 then
+						return
+					end
+					if k % 2 == 1 or #vis == 1 then
+						local who = vis[math.random(1, #vis)]
+						Kit.frame(who, "MS", { angle = math.random(-30, 30), mm = 35 })
+					else
+						local c = Vector3.zero
+						for _, a in ipairs(vis) do
+							c += a.root.Position
+						end
+						c /= #vis
+						local spread = 0
+						for _, a in ipairs(vis) do
+							spread = math.max(spread, (a.root.Position - c).Magnitude)
+						end
+						local front = vis[1].root.CFrame.LookVector
+						local dist = math.clamp(spread * 2.2 + 14, 16, 70)
+						Kit.cam({ pos = c + front * dist + Vector3.new(0, 4 + dist * 0.12, 0), look = c + Vector3.new(0, 2.5, 0), mm = 28, time = 0 })
+					end
+					id0 = Kit._shotId
 				end
 			end)
 		end
 		if d.big ~= "" and not d.noBig then
 			task.delay(0.5, fx, "big", d.big, math.min(d.dur, 3))
 		end
-		ctx.beat(d.text, d.dur, action)
+		-- phụ đề chạy từng cụm ngắn theo nhịp đọc
+		local chunks, cur = {}, {}
+		for word in d.text:gmatch("%S+") do
+			table.insert(cur, word)
+			if #cur >= 10 or (#cur >= 4 and word:find("[%.,%?!…:]$")) then
+				table.insert(chunks, table.concat(cur, " "))
+				cur = {}
+			end
+		end
+		if #cur > 0 then
+			table.insert(chunks, table.concat(cur, " "))
+		end
+		local total = 0
+		for _, c in ipairs(chunks) do
+			total += #c
+		end
+		task.spawn(function()
+			for _, c in ipairs(chunks) do
+				fx("line", "Lời dẫn", c, "narration")
+				task.wait((d.dur - 0.3) * #c / math.max(total, 1))
+			end
+		end)
+		if action then
+			task.spawn(action)
+		end
+		task.wait(d.dur)
 	end
 	local function chapterCard(text)
 		fx("line", "", "")
@@ -1068,9 +1109,11 @@ function VD.run(Kit)
 		Kit.cam({ pos = st.S(0, 14, -22), look = Kit.on(Minh, "UpperTorso"), mm = 30, time = 0, smooth = 5 })
 		L(4, 2, function()
 			Kit.turn(Minh, st.S(20, 0, 1.5), 0.2)
-			for i = 0, 38, 3 do
-				hop(Minh, st.S(-20 + i + 3, 25 - (i + 3) * 0.625 - 0.05, 1.5), 1.6, 0.45)
+			local steps = {}
+			for i = 0, 39, 2 do
+				table.insert(steps, st.S(-20 + i, 25 - i * 0.625 - 0.05, 1.5))
 			end
+			Kit.walk(Minh, steps, 9)
 			Kit.expr(Minh, "laugh")
 		end)
 		-- gánh xôi
@@ -1084,9 +1127,7 @@ function VD.run(Kit)
 		Kit.frame(A.CoXoi, "FS", { angle = 70, mm = 30, smooth = 4 })
 		L(4, 3, function()
 			task.spawn(function()
-				for k = 1, 8 do
-					hop(A.CoXoi, P(-60 + k * 2.5, 0.3, -56), 0.8, 0.45)
-				end
+				Kit.walk(A.CoXoi, P(-40, 0.3, -56), 5)
 			end)
 		end)
 		-- bát phở
@@ -1182,9 +1223,8 @@ function VD.run(Kit)
 		Kit.stand(Ban, P(-20, 0, 0), P(20, 0, 0))
 		Kit.frame(Ban, "FS", { angle = 80, mm = 30, smooth = 4 })
 		L(5, 6, function()
-			for k = 1, 8 do
-				hop(Ban, P(-20 + k * 3.5, 0, 0), 1.2, 0.5)
-			end
+			Kit.walk(Ban, P(0, 0, 0), 6)
+			ctx.jump(Ban, 3, 1.1, 0)
 			Kit.expr(Ban, "laugh")
 		end)
 		Kit.cam({ pos = P(10, 3, -10), look = P(0, 4, 10), mm = 30, time = 0 })
