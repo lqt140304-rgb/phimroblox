@@ -258,35 +258,83 @@ local function ensure(className, parent)
 	return obj
 end
 
+-- Mỗi "look" = một bảng màu thống nhất: ánh trời (ColorShift), ánh nền, sương theo khoảng cách (tạo chiều sâu),
+-- chỉnh màu điện ảnh (ấm ở vùng sáng, lạnh ở vùng tối) và bật/tắt đèn thật trong cảnh.
 local LOOKS = {
-	morning = { ClockTime = 7.4, Brightness = 1.6, Ambient = "#3c3a3a", Outdoor = "#7c7c88", Exposure = -0.15, Density = 0.38, Haze = 1.6, AtmColor = "#f2dcc0", Tint = "#ffe8cf", Sat = 0.15, Contrast = 0.22, Rays = 0.12 },
-	afternoon = { ClockTime = 16.2, Brightness = 1.4, Ambient = "#3a3430", Outdoor = "#6a625a", Exposure = -0.2, Density = 0.38, Haze = 1.8, AtmColor = "#e8cfae", Tint = "#ffe2c4", Sat = 0.12, Contrast = 0.22, Rays = 0.1 },
-	rain = { ClockTime = 17, Brightness = 0.7, Ambient = "#2c3038", Outdoor = "#525a68", Exposure = -0.05, Density = 0.5, Haze = 2.4, AtmColor = "#9aa6b8", Tint = "#d4dcf2", Sat = -0.12, Contrast = 0.2, Rays = 0 },
-	night = { ClockTime = 22.5, Brightness = 0.2, Ambient = "#1a1c26", Outdoor = "#20243a", Exposure = 0.1, Density = 0.35, Haze = 0.8, AtmColor = "#3a4466", Tint = "#d8dcff", Sat = -0.05, Contrast = 0.2, Rays = 0 },
+	morning = { ClockTime = 7.6, Brightness = 2.1, Ambient = "#3a3840", Outdoor = "#8a8fa0", Top = "#ffd9a8", Bottom = "#6a7890", Exposure = -0.25, Density = 0.32, Offset = 0.3, Haze = 1.9, AtmColor = "#f4dcc0", Decay = "#9aa6c0", Glare = 0.35, Tint = "#fff0e0", Sat = 0.12, Contrast = 0.18, Rays = 0.08, Shadow = 0.18, Night = false },
+	afternoon = { ClockTime = 16.4, Brightness = 2.0, Ambient = "#3c3634", Outdoor = "#8a8078", Top = "#ffc890", Bottom = "#6a7080", Exposure = -0.3, Density = 0.34, Offset = 0.3, Haze = 2.1, AtmColor = "#f0d0a8", Decay = "#8a90a8", Glare = 0.45, Tint = "#ffe8d0", Sat = 0.14, Contrast = 0.2, Rays = 0.1, Shadow = 0.18, Night = false },
+	rain = { ClockTime = 17.2, Brightness = 0.9, Ambient = "#30343e", Outdoor = "#5a6272", Top = "#c8d4e8", Bottom = "#40485a", Exposure = -0.1, Density = 0.45, Offset = 0.15, Haze = 2.6, AtmColor = "#a4b0c2", Decay = "#5a6478", Glare = 0, Tint = "#dce4f4", Sat = -0.08, Contrast = 0.18, Rays = 0, Shadow = 0.6, Night = true },
+	night = { ClockTime = 22.5, Brightness = 0.35, Ambient = "#1c2030", Outdoor = "#2a3048", Top = "#9aa8d8", Bottom = "#2a1e18", Exposure = 0.2, Density = 0.3, Offset = 0.2, Haze = 1.2, AtmColor = "#4a5478", Decay = "#141828", Glare = 0, Tint = "#e2e4ff", Sat = 0.05, Contrast = 0.22, Rays = 0, Shadow = 0.4, Night = true },
 }
+
+-- Đèn thật trong cảnh: tự bật khi trời tối/mưa (mode "night") hoặc luôn bật ("always").
+Kit._practicals = {}
+Kit._windows = {}
+Kit._isNight = false
+function Kit.practical(parent, className, props, mode)
+	local l = Instance.new(className)
+	for k, v in pairs(props or {}) do
+		l[k] = v
+	end
+	l.Parent = parent
+	table.insert(Kit._practicals, { light = l, mode = mode or "night" })
+	l.Enabled = (mode == "always") or Kit._isNight
+	return l
+end
+-- cửa sổ: ban đêm một phần sáng đèn vàng ấm
+function Kit.windowGlow(part, chance)
+	local lit = Random.new(#Kit._windows * 7919 + 13):NextNumber() < (chance or 0.45)
+	table.insert(Kit._windows, { part = part, lit = lit, color = part.Color, material = part.Material })
+end
+local function applyNight(on)
+	Kit._isNight = on
+	for _, p in ipairs(Kit._practicals) do
+		if p.light.Parent then
+			p.light.Enabled = p.mode == "always" or on
+		end
+	end
+	for _, w in ipairs(Kit._windows) do
+		if w.part.Parent then
+			if on and w.lit then
+				w.part.Material = Enum.Material.Neon
+				w.part.Color = Color3.fromRGB(255, 196, 120)
+				w.part.Transparency = 0.35
+			else
+				w.part.Material = w.material
+				w.part.Color = w.color
+				w.part.Transparency = 0
+			end
+		end
+	end
+end
+
 function Kit.look(name)
 	local L = LOOKS[name]
 	pcall(function()
 		Lighting.Technology = Enum.Technology.Future
 	end)
 	Lighting.GlobalShadows = true
-	Lighting.ShadowSoftness = 0.45
-	Lighting.EnvironmentDiffuseScale = 0.6
-	Lighting.EnvironmentSpecularScale = 0.6
+	Lighting.ShadowSoftness = L.Shadow
+	Lighting.EnvironmentDiffuseScale = 1
+	Lighting.EnvironmentSpecularScale = 1
 	Lighting.ClockTime = L.ClockTime
+	Lighting.GeographicLatitude = 21 -- Hà Nội
 	Lighting.Brightness = L.Brightness
 	Lighting.Ambient = hex(L.Ambient)
 	Lighting.OutdoorAmbient = hex(L.Outdoor)
+	Lighting.ColorShift_Top = hex(L.Top)
+	Lighting.ColorShift_Bottom = hex(L.Bottom)
 	Lighting.ExposureCompensation = L.Exposure
 	local atm = ensure("Atmosphere", Lighting)
-	atm.Density, atm.Offset, atm.Haze, atm.Glare, atm.Color = L.Density, 0.1, L.Haze, 0.2, hex(L.AtmColor)
-	atm.Decay = hex(L.AtmColor):Lerp(Color3.new(0, 0, 0), 0.4)
+	atm.Density, atm.Offset, atm.Haze, atm.Glare = L.Density, L.Offset, L.Haze, L.Glare
+	atm.Color, atm.Decay = hex(L.AtmColor), hex(L.Decay)
 	local cc = ensure("ColorCorrectionEffect", Lighting)
-	cc.TintColor, cc.Saturation, cc.Contrast, cc.Brightness = hex(L.Tint), L.Sat, L.Contrast, -0.02
+	cc.TintColor, cc.Saturation, cc.Contrast, cc.Brightness = hex(L.Tint), L.Sat, L.Contrast, 0
 	local bloom = ensure("BloomEffect", Lighting)
-	bloom.Intensity, bloom.Size, bloom.Threshold = 0.35, 28, 1.8
+	bloom.Intensity, bloom.Size, bloom.Threshold = L.Night and 0.8 or 0.3, L.Night and 36 or 28, L.Night and 1.2 or 1.9
 	local rays = ensure("SunRaysEffect", Lighting)
-	rays.Intensity, rays.Spread = L.Rays, 0.6
+	rays.Intensity, rays.Spread = L.Rays, 0.5
+	applyNight(L.Night)
 end
 
 -- khép kín bối cảnh: nền đất rộng + vòng nhà cao tầng mờ trong sương ở xa
@@ -1725,11 +1773,15 @@ function Kit._client()
 		camera.FieldOfView = fov
 
 		-- lấy nét theo chủ thể
-		if spec.dof and spec.dof > 0 then
+		local dofAmt = spec.dof
+		if dofAmt == nil then
+			dofAmt = 0.1 -- luôn có chút mờ hậu cảnh để tách lớp
+		end
+		if dofAmt > 0 then
 			dof.Enabled = true
-			dof.FarIntensity = spec.dof
-			dof.NearIntensity = spec.near or spec.dof * 0.6
-			dof.InFocusRadius = spec.focusRadius or 3
+			dof.FarIntensity = dofAmt
+			dof.NearIntensity = spec.near or dofAmt * 0.6
+			dof.InFocusRadius = spec.focusRadius or math.max(4, (st.look - camPos).Magnitude * 0.4)
 			dof.FocusDistance = (st.look - camPos).Magnitude
 		else
 			dof.Enabled = false

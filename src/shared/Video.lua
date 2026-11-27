@@ -113,7 +113,8 @@ function Video.run(Kit)
 		local face = faceDir < 0 and Enum.NormalId.Front or Enum.NormalId.Back
 		-- tầng trệt
 		box("ShopFront", Vector3.new(w - 1.2, 6.2, 0.2), F(0, 3.1, 0.05), "#2b2622")
-		box("ShopLight", Vector3.new(w - 2, 0.15, 0.15), F(0, 6, 0.3), "#fff0c8", Enum.Material.Neon)
+		local shopLight = box("ShopLight", Vector3.new(w - 2, 0.15, 0.15), F(0, 6, 0.3), "#fff0c8", Enum.Material.Neon)
+		Kit.practical(shopLight, "PointLight", { Range = 12, Brightness = 1.4, Color = Color3.fromRGB(255, 200, 140) })
 		box("Shutter", Vector3.new(w - 1.3, 2, 0.15), F(0, 5.2, 0.2), "#9aa0a4", Enum.Material.DiamondPlate)
 		for k = 0, 2 do
 			box("Goods", Vector3.new(1.4, 1.2 + k * 0.4, 1.2), F(-w / 2 + 1.6 + k * 1.8, 0.6 + k * 0.2, 1.2), ({ "#d64545", "#e8c547", "#4a78b8" })[k + 1], Enum.Material.Cardboard)
@@ -128,7 +129,7 @@ function Video.run(Kit)
 		for fl = 1, floors do
 			local y = 9 + fl * 4.8
 			box("WinFrame", Vector3.new(w * 0.55, 3.2, 0.25), F(0, y, 0.05), "#f2efe6")
-			box("WinGlass", Vector3.new(w * 0.55 - 0.5, 2.7, 0.1), F(0, y, 0.2), "#3d5570", Enum.Material.Glass, { Reflectance = 0.15 })
+			Kit.windowGlow(box("WinGlass", Vector3.new(w * 0.55 - 0.5, 2.7, 0.1), F(0, y, 0.2), "#3d5570", Enum.Material.Glass, { Reflectance = 0.15 }))
 			box("ShutterL", Vector3.new(0.9, 3.2, 0.15), F(-w * 0.275 - 0.5, y, 0.15), "#4d7a5a", Enum.Material.Wood)
 			box("ShutterR", Vector3.new(0.9, 3.2, 0.15), F(w * 0.275 + 0.5, y, 0.15), "#4d7a5a", Enum.Material.Wood)
 			box("Balcony", Vector3.new(w - 0.6, 0.3, 1.8), F(0, y - 1.9, 0.9), "#d8d2c4", Enum.Material.Concrete)
@@ -162,7 +163,7 @@ function Video.run(Kit)
 		box("SideBlock", Vector3.new(12, 36, 110), P(x, 18, 0), "#bfb3a0", Enum.Material.Concrete)
 		for fl = 1, 5 do
 			for k = -4, 4 do
-				box("SideWin", Vector3.new(0.2, 2.6, 3), P(x - math.sign(x) * 6.05, fl * 6, k * 11), "#3d5570", Enum.Material.Glass, { Reflectance = 0.15 })
+				Kit.windowGlow(box("SideWin", Vector3.new(0.2, 2.6, 3), P(x - math.sign(x) * 6.05, fl * 6, k * 11), "#3d5570", Enum.Material.Glass, { Reflectance = 0.15 }))
 			end
 		end
 	end
@@ -212,7 +213,8 @@ function Video.run(Kit)
 		if not Kit.asset("Lamp", CFrame.new(P(x, 0.3, -28.5)), nil, x) then
 			box("LampPole", Vector3.new(0.4, 12, 0.4), P(x, 6, -28.5), "#2b2b2b", Enum.Material.Metal)
 			box("LampArm", Vector3.new(0.25, 0.25, 2.4), P(x, 11.9, -29.6), "#2b2b2b", Enum.Material.Metal)
-			box("LampHead", Vector3.new(0.8, 0.3, 1.4), P(x, 11.7, -30.6), "#fff2d0", Enum.Material.Neon)
+			local head = box("LampHead", Vector3.new(0.8, 0.3, 1.4), P(x, 11.7, -30.6), "#fff2d0", Enum.Material.Neon)
+			Kit.practical(head, "SpotLight", { Face = Enum.NormalId.Bottom, Angle = 100, Range = 24, Brightness = 2.2, Color = Color3.fromRGB(255, 205, 150), Shadows = true })
 		end
 		cyl("Bin", 1.6, 1.1, P(x + 3, 0.8, -28.5), "#2f7a4a", Enum.Material.Metal)
 		for k = -1, 1 do

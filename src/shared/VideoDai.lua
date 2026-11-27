@@ -450,6 +450,12 @@ function VD.run(Kit)
 		box("Window", Vector3.new(6, 4, 0.2), R(-2, 5.5, 8.45), "#cfe6ee", Enum.Material.Glass, { Transparency = 0.4 })
 		local sunSrc = box("Sun", Vector3.new(1, 1, 1), CFrame.lookAt(R(-6, 14, 24), R(0, 0, 0)), "#ffffff", nil, { Transparency = 1, CanCollide = false, CastShadow = false })
 		light("SpotLight", sunSrc, { Face = Enum.NormalId.Front, Angle = 50, Range = 40, Brightness = 5, Color = Color3.fromRGB(255, 226, 180), Shadows = true })
+		local ceilLamp = box("CeilLamp", Vector3.new(2.4, 0.2, 2.4), R(0, 9.9, 0), "#fff0d0", Enum.Material.Neon)
+		Kit.practical(ceilLamp, "PointLight", { Range = 22, Brightness = 0.9, Color = Color3.fromRGB(255, 214, 170), Shadows = true }, "always")
+		local fillWin = box("WindowFill", Vector3.new(6, 4, 0.1), R(-2, 5.5, 8.2), "#ffffff", nil, { Transparency = 1, CanCollide = false, CastShadow = false })
+		Kit.practical(fillWin, "SurfaceLight", { Face = Enum.NormalId.Front, Range = 18, Angle = 90, Brightness = 0.7, Color = Color3.fromRGB(200, 220, 255) }, "always")
+		local lampBed = ball("BedLamp", 0.8, R(-10, 4, 7.5), "#ffcf87", Enum.Material.Neon)
+		Kit.practical(lampBed, "PointLight", { Range = 10, Brightness = 1.2, Color = Color3.fromRGB(255, 180, 110) })
 		box("BedFrame", Vector3.new(6, 1.2, 9), R(-7, 0.6, 3.5), "#6b4a32", Enum.Material.Wood)
 		box("Mattress", Vector3.new(5.8, 0.6, 8.8), R(-7, 1.5, 3.5), "#e8e2d4", Enum.Material.Fabric)
 		box("Blanket", Vector3.new(5.9, 0.3, 4), R(-7, 1.9, 2), "#7d93b0", Enum.Material.Fabric)
@@ -515,6 +521,9 @@ function VD.run(Kit)
 			box("Rail", Vector3.new(60, 1.2, 0.15), S(0, y + 0.6, 4.1), "#3a5a4a", Enum.Material.Metal)
 			for k = -2, 2 do
 				box("Door", Vector3.new(3, 4, 0.2), S(k * 11, y + 2, 6.95), "#4d6b5a", Enum.Material.Wood)
+				Kit.windowGlow(box("Win", Vector3.new(2.4, 2, 0.2), S(k * 11 + 4.5, y + 2.6, 6.95), "#3d5570", Enum.Material.Glass, { Reflectance = 0.15 }), 0.6)
+				local bulb = ball("Bulb", 0.4, S(k * 11 - 2.5, y + 4.3, 6.4), "#ffe2b0", Enum.Material.Neon)
+				Kit.practical(bulb, "PointLight", { Range = 9, Brightness = 1, Color = Color3.fromRGB(255, 200, 140) })
 				box("Laundry", Vector3.new(1, 1.2, 0.05), S(k * 11 + 3, y + 3.2, 4.2), ({ "#d64545", "#e8e8e8", "#4a78b8" })[(k + fl) % 3 + 1], Enum.Material.Fabric)
 			end
 		end
@@ -622,6 +631,8 @@ function VD.run(Kit)
 			box("Stall", Vector3.new(6, 2.6, 3), K(x, 1.3, -14), "#8b6a4a", Enum.Material.Wood)
 			box("Tarp", Vector3.new(7, 0.2, 4), CFrame.new(K(x, 6, -14)) * CFrame.Angles(rad(-8), 0, 0), i % 2 == 0 and "#2f6ab0" or "#c8322f", Enum.Material.Fabric)
 			box("TarpPole", Vector3.new(0.2, 6, 0.2), K(x - 3, 3, -12.5), "#cccccc", Enum.Material.Metal)
+			local bulb = ball("StallBulb", 0.5, K(x, 5.4, -14), "#ffe2b0", Enum.Material.Neon)
+			Kit.practical(bulb, "PointLight", { Range = 10, Brightness = 1, Color = Color3.fromRGB(255, 205, 150) }, "always")
 			for k = 0, 9 do
 				ball("Fruit", 0.7, K(x - 2.4 + (k % 5) * 1.2, 2.95, -14.5 + math.floor(k / 5)), produce[(i + k) % #produce + 1])
 			end
@@ -681,6 +692,7 @@ function VD.run(Kit)
 			box("House", Vector3.new(9, 9, 9), W(x, 4.5, -11), cols[i % #cols + 1], Enum.Material.Plaster)
 			box("Roof", Vector3.new(10, 0.6, 10), W(x, 9.3, -11), "#a8553a", Enum.Material.ClayRoofTiles)
 			box("Door", Vector3.new(3, 5, 0.2), W(x, 2.5, -6.45), "#5a4430", Enum.Material.Wood)
+			Kit.windowGlow(box("Win", Vector3.new(2.4, 2.4, 0.2), W(x + 2.8, 5.5, -6.45), "#3d5570", Enum.Material.Glass, { Reflectance = 0.15 }), 0.7)
 		end
 		-- ruộng lúa
 		for i = 0, 7 do
