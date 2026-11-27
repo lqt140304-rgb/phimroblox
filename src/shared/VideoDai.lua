@@ -189,8 +189,34 @@ function VD.run(Kit)
 	local everyone = { Ban, A.KhachA, A.KhachB, A.KhachC, A.KhachD, Linh, Tuan }
 
 	------------------------------------------------------------------ LỜI KỂ
+	-- cử chỉ gắn theo từng câu lời kể: GEST[chương][câu] = { {tên nhân vật, cử chỉ, trễ giây}, ... }
+	local GEST = {
+		[2] = { [1] = { { "Ban", "explain", 0.5 } }, [2] = { { "Ban", "shrug", 1 } }, [3] = { { "Ban", "nod", 1 } }, [4] = { { "Ban", "think", 0.5 }, { "Ban", "pointUp", 5 } } },
+		[3] = { [1] = { { "Minh", "stretch", 0.3 } }, [2] = { { "Minh", "surprised", 3 } }, [4] = { { "Minh", "nod", 1 } }, [6] = { { "Minh", "think", 1 } } },
+		[4] = { [1] = { { "Minh", "wave", 0.5 } }, [2] = { { "Minh", "cheer", 5 } }, [4] = { { "Minh", "nod", 1.5 }, { "ChuPho", "explain", 2.5 } }, [5] = { { "Minh", "surprised", 2.8 } }, [6] = { { "Minh", "explain", 0.2 } } },
+		[5] = { [2] = { { "Ban", "cheer", 1.5 }, { "Linh", "clap", 1.6 } }, [4] = { { "Tuan", "cheer", 3 } }, [5] = { { "Ban", "cheer", 2 } }, [6] = { { "Ban", "cheer", 3 } }, [7] = { { "Linh", "clap", 0 } } },
+		[7] = {},
+		[8] = { [5] = { { "Minh", "surprised", 3.2 } } },
+		[9] = { [5] = { { "CauThu2", "breathe", 0 } }, [6] = { { "ThuMon", "facepalm", 0.5 } } },
+		[10] = { [1] = { { "KhachB", "cheer", 2 } }, [5] = { { "KhachD", "stretch", 1 } } },
+		[12] = { [4] = { { "Minh", "shake", 0.8 }, { "Minh", "facepalm", 2.5 } } },
+		[13] = { [3] = { { "OngLao", "lookUp", 0.3 } }, [5] = { { "OngLao", "shake", 0.5 } } },
+		[14] = { [1] = { { "Ban", "breathe", 0 } }, [3] = { { "Ban", "headHold", 0.5 } }, [4] = { { "Ban", "breathe", 0 } }, [8] = { { "CoBanMi", "shrug", 1 } } },
+		[15] = { [5] = { { "KhachA", "lookUp", 0.5 } }, [6] = { { "Ban", "lookUp", 0 }, { "Linh", "lookUp", 0.3 }, { "KhachB", "lookUp", 0.6 }, { "KhachD", "lookUp", 0.4 } } },
+		[16] = { [3] = { { "Ban", "lookAround", 0.5 }, { "Linh", "headHold", 0.8 }, { "Tuan", "lookAround", 0.3 }, { "KhachB", "headHold", 1 } } },
+		[17] = { [7] = { { "Ban", "pointUp", 1.5 } } },
+		[18] = { [1] = { { "Ban", "wave", 0.5 }, { "Linh", "wave", 0.8 } }, [2] = { { "Tuan", "pointUp", 0.3 } } },
+	}
+	Kit.idleLife(true)
+
 	local function L(ch, i, action)
 		local d = NARR[ch][i]
+		for _, g in ipairs((GEST[ch] or {})[i] or {}) do
+			local who = A[g[1]]
+			if who then
+				task.delay(g[3] or 0, Kit.gesture, who, g[2])
+			end
+		end
 		if d.big ~= "" and not d.noBig then
 			task.delay(0.5, fx, "big", d.big, math.min(d.dur, 3))
 		end
@@ -957,8 +983,9 @@ function VD.run(Kit)
 		Kit.cam({ pos = r.R(6, 6, -7), look = r.R(-4, 3, 2), mm = 24, time = 0 })
 		L(3, 1, function()
 			Kit.expr(Minh, "smile")
+			task.wait(2.6)
+			Kit.walk(Minh, r.R(0, 0.25, -2), 5)
 		end)
-		Kit.walk(Minh, r.R(0, 0.25, -2), 5)
 		Kit.cam({ pos = r.R(0.5, 4, -6), look = r.R(0, 0.3, -2), mm = 35, time = 0 })
 		L(3, 2, function()
 			for k = 0, 20 do
@@ -979,9 +1006,11 @@ function VD.run(Kit)
 		end)
 		Kit.pose(Minh, "rest", 0.2, false)
 		Kit.cam({ pos = r.R(0, 30, -20), look = r.R(0, 0, 0), mm = 30, time = 0 })
-		L(3, 4)
-		Kit.walk(Minh, r.R(-8, 0, -4.4), 6)
-		Kit.turn(Minh, r.R(-9, 0, -6), 0.3)
+		L(3, 4, function()
+			task.wait(1.2)
+			Kit.walk(Minh, r.R(-8, 0, -4.4), 6)
+			Kit.turn(Minh, r.R(-9, 0, -6), 0.3)
+		end)
 		Kit.cam({ pos = r.R(-6.5, 5, -4), look = r.R(-9, 3.5, -6.5), mm = 40, time = 0, dof = 0.4 })
 		r.water.Rate = 120
 		r.water.Speed = NumberRange.new(10)

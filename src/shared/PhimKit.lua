@@ -591,6 +591,7 @@ function Kit.dress(a, outfit)
 		end
 	end
 	a.outfit = outfit
+	Kit.noShadow(a)
 end
 
 ------------------------------------------------------------------------ TÓC
@@ -791,9 +792,65 @@ function Kit.actor(name, spec)
 	elseif spec.outfit and spec.forceOutfit then
 		Kit.dress(a, spec.outfit)
 	end
+	Kit.noShadow(a)
+	-- vệt bóng mềm dưới chân (thay cho bóng thật vốn bị giật khi nhân vật chuyển động)
+	local blob = Instance.new("Part")
+	blob.Name = "BlobShadow"
+	blob.Shape = Enum.PartType.Cylinder
+	blob.Size = Vector3.new(0.05, 3, 3)
+	blob.Color = Color3.new(0, 0, 0)
+	blob.Material = Enum.Material.SmoothPlastic
+	blob.Transparency = 1
+	blob.Anchored = true
+	blob.CanCollide, blob.CanQuery, blob.CanTouch, blob.CastShadow = false, false, false, false
+	blob.Parent = Kit.SET
+	a.blob = blob
 	Kit.A[name] = a
 	model.Parent = nil
 	return a
+end
+
+-- tắt bóng thật của mọi bộ phận nhân vật (tóc, quần áo, phụ kiện)
+function Kit.noShadow(a)
+	for _, p in ipairs(a.model:GetDescendants()) do
+		if p:IsA("BasePart") then
+			p.CastShadow = false
+		end
+	end
+end
+
+-- cập nhật vệt bóng mỗi khung hình
+local blobParams = RaycastParams.new()
+blobParams.FilterType = Enum.RaycastFilterType.Exclude
+function Kit._updateBlobs()
+	local ignore = { Kit.ACTORS }
+	for _, a in pairs(Kit.A) do
+		if a.blob then
+			table.insert(ignore, a.blob)
+		end
+	end
+	blobParams.FilterDescendantsInstances = ignore
+	for _, a in pairs(Kit.A) do
+		local b = a.blob
+		if b then
+			if a.model.Parent == nil then
+				b.Transparency = 1
+			else
+				local root = a.root.Position
+				local hit = workspace:Raycast(root, Vector3.new(0, -40, 0), blobParams)
+				if hit then
+					local h = math.max(0, (root.Y - hit.Position.Y) - a.standY)
+					local k = math.clamp(1 - h / 14, 0.25, 1)
+					local d = 3.2 * (a.model:GetExtentsSize().X > 4 and 1.3 or 1) * (0.6 + 0.4 * k)
+					b.Size = Vector3.new(0.05, d, d)
+					b.CFrame = CFrame.new(hit.Position + hit.Normal * 0.06) * CFrame.Angles(0, 0, math.rad(90))
+					b.Transparency = 1 - 0.5 * k
+				else
+					b.Transparency = 1
+				end
+			end
+		end
+	end
 end
 
 ------------------------------------------------------------------------ DIỄN XUẤT (mượt, không vật lý)
@@ -911,6 +968,95 @@ function Kit.pose(a, name, t, wait)
 	if wait ~= false then
 		task.wait(t or 0.4)
 	end
+end
+
+-- CỬ CHỈ: chuỗi tư thế (Neck, Waist, vai, khuỷu). Mỗi bước = { thời gian, { Khớp = {xoayX, xoayY, xoayZ, nângY} } }
+-- Neck: X dương = ngửa lên, âm = cúi; Y = quay trái/phải. Waist: X âm = cúi người tới trước.
+local function seqRepeat(steps, n)
+	local out = {}
+	for _ = 1, n do
+		for _, st in ipairs(steps) do
+			table.insert(out, st)
+		end
+	end
+	return out
+end
+Kit.GESTURES = {
+	nod = { { 0.18, { Neck = { -14, 0, 0 } } }, { 0.16, { Neck = { -2, 0, 0 } } }, { 0.16, { Neck = { -12, 0, 0 } } }, { 0.25, {} } },
+	shake = { { 0.16, { Neck = { 0, 22, 0 } } }, { 0.2, { Neck = { 0, -22, 0 } } }, { 0.2, { Neck = { 0, 18, 0 } } }, { 0.2, { Neck = { 0, -12, 0 } } }, { 0.25, {} } },
+	shrug = { { 0.25, { Neck = { 0, 0, 10 }, RightShoulder = { 30, 0, -35, 0.15 }, LeftShoulder = { 30, 0, 35, 0.15 }, RightElbow = { 70, 0, 0 }, LeftElbow = { 70, 0, 0 } } }, { 0.7, { Neck = { 0, 0, 10 }, RightShoulder = { 30, 0, -35, 0.15 }, LeftShoulder = { 30, 0, 35, 0.15 }, RightElbow = { 70, 0, 0 }, LeftElbow = { 70, 0, 0 } } }, { 0.35, {} } },
+	think = { { 0.4, { Neck = { -8, 0, 6 }, RightShoulder = { 95, 0, 25 }, RightElbow = { 140, 0, 0 }, LeftShoulder = { 40, 0, -30 }, LeftElbow = { 90, 0, 0 } } }, { 2.0, { Neck = { -8, 0, 6 }, RightShoulder = { 95, 0, 25 }, RightElbow = { 140, 0, 0 }, LeftShoulder = { 40, 0, -30 }, LeftElbow = { 90, 0, 0 } } }, { 0.4, {} } },
+	facepalm = { { 0.3, { Neck = { -20, 0, 0 }, RightShoulder = { 115, 0, 20 }, RightElbow = { 125, 0, 0 } } }, { 1.4, { Neck = { -22, 0, 0 }, RightShoulder = { 115, 0, 20 }, RightElbow = { 125, 0, 0 } } }, { 0.4, {} } },
+	headHold = { { 0.35, { Neck = { -12, 0, 0 }, Waist = { -6, 0, 0 }, RightShoulder = { 140, 0, 25 }, LeftShoulder = { 140, 0, -25 }, RightElbow = { 120, 0, 0 }, LeftElbow = { 120, 0, 0 } } }, { 1.8, { Neck = { -14, 0, 0 }, Waist = { -8, 0, 0 }, RightShoulder = { 140, 0, 25 }, LeftShoulder = { 140, 0, -25 }, RightElbow = { 120, 0, 0 }, LeftElbow = { 120, 0, 0 } } }, { 0.45, {} } },
+	lookAround = { { 0.5, { Neck = { 0, 35, 0 } } }, { 0.7, { Neck = { 0, 35, 0 } } }, { 0.7, { Neck = { 0, -35, 0 } } }, { 0.6, { Neck = { 0, -35, 0 } } }, { 0.5, {} } },
+	lookUp = { { 0.6, { Neck = { 28, 0, 0 }, Waist = { 6, 0, 0 } } }, { 2.2, { Neck = { 30, 0, 0 }, Waist = { 6, 0, 0 } } }, { 0.6, {} } },
+	surprised = { { 0.15, { Neck = { 8, 0, 0 }, Waist = { 6, 0, 0 }, RightShoulder = { 35, 0, -30 }, LeftShoulder = { 35, 0, 30 }, RightElbow = { 40, 0, 0 }, LeftElbow = { 40, 0, 0 } } }, { 1.0, { Neck = { 8, 0, 0 }, Waist = { 6, 0, 0 }, RightShoulder = { 35, 0, -30 }, LeftShoulder = { 35, 0, 30 }, RightElbow = { 40, 0, 0 }, LeftElbow = { 40, 0, 0 } } }, { 0.4, {} } },
+	stretch = { { 0.6, { Waist = { 8, 0, 0 }, Neck = { 15, 0, 0 }, RightShoulder = { 170, 0, 10 }, LeftShoulder = { 170, 0, -10 } } }, { 1.0, { Waist = { 10, 0, 0 }, Neck = { 15, 0, 0 }, RightShoulder = { 175, 0, 10 }, LeftShoulder = { 175, 0, -10 } } }, { 0.6, {} } },
+	cheer = { { 0.25, { RightShoulder = { 165, 0, 25 }, LeftShoulder = { 165, 0, -25 }, Neck = { 12, 0, 0 } } }, { 0.8, { RightShoulder = { 170, 0, 30 }, LeftShoulder = { 170, 0, -30 }, Neck = { 12, 0, 0 } } }, { 0.4, {} } },
+	wave = seqRepeat({ { 0.22, { RightShoulder = { 160, 0, 20 }, RightElbow = { 30, 0, 0 } } }, { 0.22, { RightShoulder = { 160, 0, 20 }, RightElbow = { -10, 0, 0 } } } }, 4),
+	clap = seqRepeat({ { 0.14, { RightShoulder = { 70, 0, 25 }, LeftShoulder = { 70, 0, -25 }, RightElbow = { 40, 0, 0 }, LeftElbow = { 40, 0, 0 } } }, { 0.14, { RightShoulder = { 70, 0, 5 }, LeftShoulder = { 70, 0, -5 }, RightElbow = { 40, 0, 0 }, LeftElbow = { 40, 0, 0 } } } }, 5),
+	explain = seqRepeat({ { 0.45, { RightShoulder = { 45, 0, -10 }, RightElbow = { 55, 0, 0 }, Neck = { 0, 6, 0 } } }, { 0.45, { RightShoulder = { 60, 0, -25 }, RightElbow = { 30, 0, 0 }, LeftShoulder = { 35, 0, 15 }, LeftElbow = { 45, 0, 0 }, Neck = { 0, -4, 0 } } } }, 3),
+	breathe = seqRepeat({ { 0.45, { Waist = { -18, 0, 0 }, Neck = { -6, 0, 0 }, RightShoulder = { 25, 0, 0, 0.12 }, LeftShoulder = { 25, 0, 0, 0.12 } } }, { 0.45, { Waist = { -14, 0, 0 }, Neck = { -2, 0, 0 }, RightShoulder = { 25, 0, 0 }, LeftShoulder = { 25, 0, 0 } } } }, 4),
+	pointUp = { { 0.3, { RightShoulder = { 160, 0, 10 }, Neck = { 20, 0, 0 } } }, { 1.6, { RightShoulder = { 160, 0, 10 }, Neck = { 22, 0, 0 } } }, { 0.4, {} } },
+}
+
+function Kit.gesture(a, name, waitDone)
+	local seq = Kit.GESTURES[name]
+	if not seq or not a or not a.joints then
+		return
+	end
+	local function run()
+		a.busy = true
+		for _, st in ipairs(seq) do
+			local dur, map = st[1], st[2]
+			for jn, j in pairs(a.joints) do
+				if jn == "Neck" or jn == "Waist" or jn:find("Shoulder") or jn:find("Elbow") then
+					local r = map[jn]
+					local goal = j.c0
+					if r then
+						goal = j.c0 * CFrame.new(0, r[4] or 0, 0) * CFrame.Angles(rad(r[1]), rad(r[2]), rad(r[3]))
+					end
+					Kit.tw(j.motor, dur, { C0 = goal })
+				end
+			end
+			task.wait(dur)
+		end
+		a.busy = false
+	end
+	if waitDone then
+		run()
+	else
+		task.spawn(run)
+	end
+end
+
+-- "sống động khi đứng yên": thỉnh thoảng nhân vật khẽ quay đầu, ngẩng/cúi nhẹ
+function Kit.idleLife(on)
+	Kit._idle = on
+	if not on or Kit._idleRunning then
+		return
+	end
+	Kit._idleRunning = true
+	task.spawn(function()
+		local rng = Random.new()
+		while Kit._idle do
+			for _, a in pairs(Kit.A) do
+				local neck = a.joints and a.joints.Neck
+				if neck and a.model.Parent and not a.busy and rng:NextNumber() < 0.35 then
+					local goal = neck.c0 * CFrame.Angles(rad(rng:NextNumber(-6, 6)), rad(rng:NextNumber(-14, 14)), rad(rng:NextNumber(-3, 3)))
+					Kit.tw(neck.motor, rng:NextNumber(0.9, 1.6), { C0 = goal })
+				end
+				local waist = a.joints and a.joints.Waist
+				if waist and a.model.Parent and not a.busy and rng:NextNumber() < 0.25 then
+					-- dồn trọng tâm, đung đưa nhẹ như đang thở
+					local goal = waist.c0 * CFrame.Angles(rad(rng:NextNumber(-2, 3)), rad(rng:NextNumber(-6, 6)), rad(rng:NextNumber(-3, 3)))
+					Kit.tw(waist.motor, rng:NextNumber(1.4, 2.4), { C0 = goal })
+				end
+			end
+			task.wait(1.6)
+		end
+		Kit._idleRunning = false
+	end)
 end
 
 function Kit.resetPose(a)
@@ -1826,6 +1972,7 @@ function Kit._client()
 	RunService:BindToRenderStep("Phim", Enum.RenderPriority.Camera.Value + 1, function(dt)
 		local now = os.clock()
 		updateFaces(dt, now)
+		Kit._updateBlobs()
 		if active then
 			updateCamera(dt, now)
 			hideMe()
