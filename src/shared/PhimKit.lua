@@ -822,6 +822,7 @@ end
 -- cập nhật vệt bóng mỗi khung hình
 local blobParams = RaycastParams.new()
 blobParams.FilterType = Enum.RaycastFilterType.Exclude
+blobParams.RespectCanCollide = true -- bỏ qua vạch kẻ, ron gạch mỏng (không va chạm)
 function Kit._updateBlobs()
 	local ignore = { Kit.ACTORS }
 	for _, a in pairs(Kit.A) do
@@ -842,9 +843,15 @@ function Kit._updateBlobs()
 					local h = math.max(0, (root.Y - hit.Position.Y) - a.standY)
 					local k = math.clamp(1 - h / 14, 0.25, 1)
 					local d = 3.2 * (a.model:GetExtentsSize().X > 4 and 1.3 or 1) * (0.6 + 0.4 * k)
+					-- chỉ đi theo mặt sàn thật, làm mượt độ cao để không nhảy giữa hai lớp
+					local gy = hit.Position.Y
+					if a._blobY and math.abs(gy - a._blobY) < 0.5 then
+						gy = a._blobY + (gy - a._blobY) * 0.15
+					end
+					a._blobY = gy
 					b.Size = Vector3.new(0.05, d, d)
-					b.CFrame = CFrame.new(hit.Position + hit.Normal * 0.06) * CFrame.Angles(0, 0, math.rad(90))
-					b.Transparency = 1 - 0.5 * k
+					b.CFrame = CFrame.new(Vector3.new(root.X, gy + 0.12, root.Z)) * CFrame.Angles(0, 0, math.rad(90))
+					b.Transparency = 1 - 0.35 * k
 				else
 					b.Transparency = 1
 				end
