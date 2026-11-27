@@ -268,8 +268,8 @@ end
 -- Mỗi "look" = một bảng màu thống nhất: ánh trời (ColorShift), ánh nền, sương theo khoảng cách (tạo chiều sâu),
 -- chỉnh màu điện ảnh (ấm ở vùng sáng, lạnh ở vùng tối) và bật/tắt đèn thật trong cảnh.
 local LOOKS = {
-	morning = { ClockTime = 7.6, Brightness = 2.1, Ambient = "#3a3840", Outdoor = "#8a8fa0", Top = "#ffd9a8", Bottom = "#6a7890", Exposure = -0.25, Density = 0.32, Offset = 0.3, Haze = 1.9, AtmColor = "#f4dcc0", Decay = "#9aa6c0", Glare = 0.35, Tint = "#fff0e0", Sat = 0.12, Contrast = 0.18, Rays = 0.08, Shadow = 0.4, Night = false },
-	afternoon = { ClockTime = 16.4, Brightness = 2.0, Ambient = "#3c3634", Outdoor = "#8a8078", Top = "#ffc890", Bottom = "#6a7080", Exposure = -0.3, Density = 0.34, Offset = 0.3, Haze = 2.1, AtmColor = "#f0d0a8", Decay = "#8a90a8", Glare = 0.45, Tint = "#ffe8d0", Sat = 0.14, Contrast = 0.2, Rays = 0.1, Shadow = 0.4, Night = false },
+	morning = { ClockTime = 7.6, Brightness = 2.1, Ambient = "#3a3840", Outdoor = "#8a8fa0", Top = "#ffd9a8", Bottom = "#6a7890", Exposure = -0.25, Density = 0.32, Offset = 0.3, Haze = 1.9, AtmColor = "#f4dcc0", Decay = "#9aa6c0", Glare = 0.35, Tint = "#fff0e0", Sat = 0.12, Contrast = 0.18, Rays = 0.08, Shadow = 0.65, Night = false },
+	afternoon = { ClockTime = 16.4, Brightness = 2.0, Ambient = "#3c3634", Outdoor = "#8a8078", Top = "#ffc890", Bottom = "#6a7080", Exposure = -0.3, Density = 0.34, Offset = 0.3, Haze = 2.1, AtmColor = "#f0d0a8", Decay = "#8a90a8", Glare = 0.45, Tint = "#ffe8d0", Sat = 0.14, Contrast = 0.2, Rays = 0.1, Shadow = 0.65, Night = false },
 	rain = { ClockTime = 17.2, Brightness = 0.9, Ambient = "#30343e", Outdoor = "#5a6272", Top = "#c8d4e8", Bottom = "#40485a", Exposure = -0.1, Density = 0.45, Offset = 0.15, Haze = 2.6, AtmColor = "#a4b0c2", Decay = "#5a6478", Glare = 0, Tint = "#dce4f4", Sat = -0.08, Contrast = 0.18, Rays = 0, Shadow = 0.6, Night = true },
 	night = { ClockTime = 22.5, Brightness = 0.35, Ambient = "#1c2030", Outdoor = "#2a3048", Top = "#9aa8d8", Bottom = "#2a1e18", Exposure = 0.2, Density = 0.3, Offset = 0.2, Haze = 1.2, AtmColor = "#4a5478", Decay = "#141828", Glare = 0, Tint = "#e2e4ff", Sat = 0.05, Contrast = 0.22, Rays = 0, Shadow = 0.4, Night = true },
 }
@@ -352,24 +352,136 @@ function Kit.look(name)
 	applyNight(L.Night)
 end
 
--- khép kín bối cảnh: nền đất rộng + vòng nhà cao tầng mờ trong sương ở xa
+-- KHÉP KÍN BỐI CẢNH: nền cỏ địa hình thật, vòng nhà cao tầng chi tiết, toà kính, rặng cây, đồi núi xa,
+-- tuỳ chọn công viên hồ (opts.lake = góc độ hướng đặt hồ).
+local function tree(pos, s, rng)
+	s = s or 1
+	Kit.cyl("Trunk", 7 * s, 0.9 * s, pos + Vector3.new(0, 3.5 * s, 0), "#5b4636", Enum.Material.Wood, { CanCollide = false })
+	local greens = { "#3f6e32", "#4f7d3d", "#5f9248", "#6aa050", "#4a7a3a" }
+	for k = 0, 5 do
+		local a = k * 1.05 + rng:NextNumber(0, 0.5)
+		Kit.ball("Leaves", (3.6 + rng:NextNumber(0, 1.4)) * s, pos + Vector3.new(math.cos(a) * 1.7 * s, (7.5 + (k % 3) * 1.1) * s, math.sin(a) * 1.7 * s), greens[rng:NextInteger(1, #greens)], Enum.Material.Grass, { CanCollide = false })
+	end
+end
+Kit.tree = tree
+
+local function willow(pos, rng)
+	Kit.cyl("WillowTrunk", 8, 1, pos + Vector3.new(0, 4, 0), "#4a3a2a", Enum.Material.Wood, { CanCollide = false })
+	Kit.ball("WillowCrown", 7, pos + Vector3.new(0, 9, 0), "#7aa84a", Enum.Material.Grass, { CanCollide = false })
+	for k = 0, 9 do
+		local a = k * 0.63
+		Kit.box("WillowStrand", Vector3.new(0.4, rng:NextNumber(4, 7), 1.2), CFrame.new(pos + Vector3.new(math.cos(a) * 3, 6.5, math.sin(a) * 3)) * CFrame.Angles(0, -a, 0), "#8ab85a", Enum.Material.Grass, { CanCollide = false, Transparency = 0.15 })
+	end
+end
+
+local function pagoda(pos)
+	Kit.box("PagodaBase", Vector3.new(10, 2, 10), pos + Vector3.new(0, 1, 0), "#8a8270", Enum.Material.Cobblestone)
+	local y = 2
+	for lv = 0, 2 do
+		local w = 7 - lv * 1.6
+		Kit.box("PagodaFloor", Vector3.new(w, 4, w), pos + Vector3.new(0, y + 2, 0), "#c8b89a", Enum.Material.Brick)
+		for _, d in ipairs({ -1, 1 }) do
+			Kit.box("PagodaArch", Vector3.new(w * 0.4, 2.4, 0.2), pos + Vector3.new(0, y + 1.6, d * (w / 2 + 0.05)), "#3a2a20")
+		end
+		Kit.box("PagodaRoof", Vector3.new(w + 2.4, 0.6, w + 2.4), pos + Vector3.new(0, y + 4.3, 0), "#7a3a2a", Enum.Material.ClayRoofTiles)
+		y += 4.6
+	end
+	Kit.cyl("PagodaTip", 2.5, 0.5, pos + Vector3.new(0, y + 1.2, 0), "#c8a050", Enum.Material.Metal)
+end
+
 function Kit.surround(center, radius, opts)
 	opts = opts or {}
-	Kit.box("Ground", Vector3.new(radius * 2.6, 1, radius * 2.6), center + Vector3.new(0, -1.05, 0), opts.ground or "#6f6a60", Enum.Material.Concrete, { CanCollide = false })
 	local rng = Random.new(opts.seed or 1)
-	local n = opts.count or 28
-	local cols = opts.colors or { "#bfb3a0", "#a9b3b8", "#c9bda6", "#9fa8a0", "#b8a898", "#d1c6b0" }
+	local T = workspace.Terrain
+	-- nền cỏ địa hình (thấp hơn mặt sân 0,5 stud để không chồng lớp)
+	pcall(function()
+		T:FillBlock(CFrame.new(center + Vector3.new(0, -2.5, 0)), Vector3.new(radius * 3.4, 4, radius * 3.4), Enum.Material.Grass)
+		pcall(function()
+			T.Decoration = true
+		end)
+	end)
+	-- đồi núi xa
+	for i = 1, 14 do
+		local a = (i / 14) * math.pi * 2 + rng:NextNumber(0, 0.3)
+		local r = radius * rng:NextNumber(1.75, 2.1)
+		local hr = rng:NextNumber(45, 75)
+		pcall(function()
+			T:FillBall(center + Vector3.new(math.cos(a) * r, -hr * 0.55, math.sin(a) * r), hr, i % 3 == 0 and Enum.Material.Rock or Enum.Material.Grass)
+		end)
+	end
+	local lakeA = opts.lake
+	local function nearLake(a)
+		if not lakeA then
+			return false
+		end
+		local d = math.abs((a - lakeA + math.pi) % (2 * math.pi) - math.pi)
+		return d < 0.55
+	end
+	-- vòng nhà cao tầng chi tiết + toà kính
+	local n = opts.count or 22
+	local cols = opts.colors or { "#d8ccb4", "#bfc8cc", "#e0d4bc", "#b8c4b8", "#d0c0ac", "#e6dccb" }
 	for i = 1, n do
 		local a = (i / n) * math.pi * 2
-		local r = radius + rng:NextNumber(0, radius * 0.25)
-		local h = rng:NextNumber(25, 70)
-		local w = rng:NextNumber(14, 26)
-		local p = center + Vector3.new(math.cos(a) * r, h / 2 - 1, math.sin(a) * r)
-		local b = Kit.box("FarBuilding", Vector3.new(w, h, w * 0.8), CFrame.lookAt(p, Vector3.new(center.X, p.Y, center.Z)), cols[(i % #cols) + 1], Enum.Material.Concrete, { CanCollide = false })
-		if opts.night then
-			for k = 1, 6 do
-				Kit.box("FarWindow", Vector3.new(1.6, 2, 0.2), b.CFrame * CFrame.new(rng:NextNumber(-w / 2 + 1, w / 2 - 1), rng:NextNumber(-h / 2 + 2, h / 2 - 2), -w * 0.4 - 0.1), k % 2 == 0 and "#ffd28a" or "#a8c8ff", Enum.Material.Neon, { CanCollide = false })
+		if not nearLake(a) then
+			local r = radius + rng:NextNumber(0, radius * 0.2)
+			local glass = rng:NextNumber() < 0.3
+			local h = glass and rng:NextNumber(70, 115) or rng:NextNumber(28, 60)
+			local w = rng:NextNumber(16, 26)
+			local p = center + Vector3.new(math.cos(a) * r, h / 2 - 0.5, math.sin(a) * r)
+			local cf = CFrame.lookAt(p, Vector3.new(center.X, p.Y, center.Z))
+			if glass then
+				Kit.box("Tower", Vector3.new(w, h, w * 0.8), cf, "#5d7e9a", Enum.Material.Glass, { CanCollide = false, Reflectance = 0.25 })
+				for y = -h / 2 + 5, h / 2 - 2, 7 do
+					Kit.box("TowerBand", Vector3.new(w + 0.3, 0.8, w * 0.8 + 0.3), cf * CFrame.new(0, y, 0), "#d8dde2", Enum.Material.Concrete, { CanCollide = false })
+				end
+				Kit.box("TowerCrown", Vector3.new(w * 0.6, 4, w * 0.5), cf * CFrame.new(0, h / 2 + 2, 0), "#c8ced4", Enum.Material.Metal, { CanCollide = false })
+			else
+				local col = cols[(i % #cols) + 1]
+				Kit.box("FarBuilding", Vector3.new(w, h, w * 0.8), cf, col, Enum.Material.Plaster, { CanCollide = false })
+				for y = -h / 2 + 4, h / 2 - 3, 4.5 do
+					local band = Kit.box("WinBand", Vector3.new(w - 2, 1.8, 0.2), cf * CFrame.new(0, y, -w * 0.4 - 0.05), "#3d5570", Enum.Material.Glass, { CanCollide = false, Reflectance = 0.2 })
+					Kit.windowGlow(band, 0.5)
+					Kit.box("Ledge", Vector3.new(w, 0.3, 0.8), cf * CFrame.new(0, y - 1.3, -w * 0.4 - 0.2), "#a8a090", Enum.Material.Concrete, { CanCollide = false })
+				end
+				Kit.box("Parapet", Vector3.new(w + 0.4, 1.2, w * 0.8 + 0.4), cf * CFrame.new(0, h / 2 + 0.6, 0), col, Enum.Material.Plaster, { CanCollide = false })
+				Kit.cyl("RoofTank", 3, 2, cf * CFrame.new(w * 0.2, h / 2 + 2.2, 0) * CFrame.Angles(0, 0, math.rad(90)), "#c8ccd0", Enum.Material.Metal, { CanCollide = false })
 			end
+		end
+	end
+	-- rặng cây giữa và sau các toà nhà
+	for i = 1, (opts.trees or 34) do
+		local a = rng:NextNumber(0, math.pi * 2)
+		if not nearLake(a) then
+			local r = radius * rng:NextNumber(0.92, 1.55)
+			tree(center + Vector3.new(math.cos(a) * r, -0.5, math.sin(a) * r), rng:NextNumber(1.1, 1.8), rng)
+		end
+	end
+	-- công viên hồ có tháp cổ, cầu cong, liễu rủ
+	if lakeA then
+		local lc = center + Vector3.new(math.cos(lakeA), 0, math.sin(lakeA)) * radius * 1.15
+		pcall(function()
+			T:FillBlock(CFrame.new(lc + Vector3.new(0, -3, 0)), Vector3.new(radius * 0.9, 5, radius * 0.9), Enum.Material.Air)
+			T:FillBlock(CFrame.new(lc + Vector3.new(0, -3.4, 0)), Vector3.new(radius * 0.9, 4.4, radius * 0.9), Enum.Material.Water)
+		end)
+		pcall(function()
+			T.WaterColor = Color3.fromRGB(60, 110, 100)
+			T.WaterReflectance = 0.6
+			T.WaterTransparency = 0.4
+			T.WaterWaveSize = 0.08
+			T.WaterWaveSpeed = 6
+		end)
+		Kit.box("Island", Vector3.new(14, 1.2, 14), lc + Vector3.new(0, -1, 0), "#6a8a4a", Enum.Material.Grass)
+		pagoda(lc + Vector3.new(0, -0.4, 0))
+		local toCenter = (center - lc).Unit
+		local side = toCenter:Cross(Vector3.yAxis)
+		for k = 0, 9 do
+			local t = k / 9
+			local pos = lc + toCenter * (8 + t * 26) + Vector3.new(0, math.sin(t * math.pi) * 3, 0)
+			Kit.box("Bridge", Vector3.new(4, 0.6, 3.2), CFrame.lookAt(pos, pos + toCenter) * CFrame.Angles(math.rad(-math.cos(t * math.pi) * 20), 0, 0), "#b83a2a", Enum.Material.Wood)
+		end
+		for k = 0, 7 do
+			local ang = k / 8 * math.pi * 2
+			willow(lc + Vector3.new(math.cos(ang), 0, math.sin(ang)) * radius * 0.5 + Vector3.new(0, -0.5, 0), rng)
 		end
 	end
 end
@@ -2161,6 +2273,19 @@ function Kit._client()
 		Kit._updateBlobs()
 		Kit._updateLook(dt)
 		Kit._updateIdleArms(now)
+		if now - (Kit._lastCull or 0) > 0.5 then
+			Kit._lastCull = now
+			local cp = camera.CFrame.Position
+			for _, pr in ipairs(Kit._practicals) do
+				local l = pr.light
+				if l.Parent and l.Parent:IsA("BasePart") then
+					local on = (pr.mode == "always" or Kit._isNight) and (l.Parent.Position - cp).Magnitude < 140
+					if l.Enabled ~= on then
+						l.Enabled = on
+					end
+				end
+			end
+		end
 		if active then
 			updateCamera(dt, now)
 			hideMe()

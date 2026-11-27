@@ -211,6 +211,10 @@ function VD.run(Kit)
 
 	local function L(ch, i, action)
 		local d = NARR[ch][i]
+		if Kit._needFadeIn then
+			Kit._needFadeIn = false
+			fx("fade", 0, 0.35)
+		end
 		Kit.setMood(d.mood)
 		for _, g in ipairs((GEST[ch] or {})[i] or {}) do
 			local who = A[g[1]]
@@ -377,6 +381,12 @@ function VD.run(Kit)
 		return g, t
 	end
 	local function showOnly(list)
+		-- chuyển cảnh: tối màn hình trước khi thay người / bối cảnh, sáng lại ở câu kể kế tiếp
+		if not Kit._needFadeIn then
+			fx("fade", 1, 0.2)
+			task.wait(0.22)
+			Kit._needFadeIn = true
+		end
 		local keep = {}
 		for _, a in ipairs(list) do
 			keep[a] = true
@@ -1848,6 +1858,9 @@ function VD.run(Kit)
 		from, to = CHUONG, CHUONG
 	end
 	for c = from, to do
+		fx("fade", 1, 0.35)
+		task.wait(0.4)
+		Kit._needFadeIn = true
 		local ok, err = pcall(CH[c])
 		if not ok then
 			warn("[VideoDai] Lỗi ở chương " .. c .. ": ", err)

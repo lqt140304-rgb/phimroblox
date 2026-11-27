@@ -65,7 +65,7 @@ function Video.run(Kit)
 	Kit.POSES.stir = { RightShoulder = { 55, 0, 10 }, RightElbow = { 60, 0, 0 } }
 
 	------------------------------------------------------------------ BỐI CẢNH: QUẢNG TRƯỜNG THÀNH PHỐ
-	Kit.surround(P(0, 0, 0), 150, { seed = 5 })
+	Kit.surround(P(0, 0, 0), 150, { seed = 5, lake = 0 })
 	box("Plaza", Vector3.new(130, 1, 90), P(0, -0.5, 12), "#d8d0c0", Enum.Material.Slate)
 	for x = -60, 60, 6 do
 		box("Tile", Vector3.new(0.08, 0.02, 90), P(x, 0.01, 12), "#b8b0a0", nil, { CanCollide = false })
