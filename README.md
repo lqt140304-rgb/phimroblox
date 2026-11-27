@@ -2,21 +2,17 @@
 
 Làm phim (machinima) trong Roblox Studio bằng script Luau.
 
-## Dự án hiện tại: THÁNG TƯ NÓI DỐI — Tập 1: Cá tháng Tư
-Kịch bản và dàn 6 tập: [docs/THANG-TU-NOI-DOI.md](docs/THANG-TU-NOI-DOI.md)
+## Dự án hiện tại: WHAT IF — Nếu trọng lực giảm một nửa trong 7 ngày?
+Kịch bản lời kể + kiểm chứng: [docs/WHAT-IF-TRONG-LUC.md](docs/WHAT-IF-TRONG-LUC.md)
 
 | File | Đặt vào | Loại | Tên (bắt buộc đúng) |
 |---|---|---|---|
 | `src/shared/PhimKit.lua` | ReplicatedStorage | **ModuleScript** | `PhimKit` |
-| `src/shared/Tap1.lua` | ReplicatedStorage | **ModuleScript** | `Tap1` |
+| `src/shared/Video.lua` | ReplicatedStorage | **ModuleScript** | `Video` |
 | `src/server/Phim_Server.server.lua` | ServerScriptService | **Script** | tuỳ ý |
 | `src/client/Phim_Player.client.lua` | StarterPlayer › StarterPlayerScripts | **LocalScript** | tuỳ ý |
 
-Xoá các script cũ (ThangTu_Tap1, Phim_Client…) trước. Bấm **Play** → ~2 giây sau phim tự chạy.
-
-**Kiến trúc:** máy chủ chỉ tạo khung nhân vật. Bối cảnh, diễn xuất, camera, khuôn mặt chạy hẳn trên máy người xem nên mượt 60 khung hình/giây, nhân vật không dùng vật lý nên không ngã.
-
-**Nhân vật đẹp hơn:** trong `Tap1`, điền `userId` của một tài khoản Roblox vào `CAST` → nhân vật mặc nguyên avatar của tài khoản đó, vẫn có biểu cảm của phim.
+Muốn làm video khác: viết module mới cùng cấu trúc (`CAST` + `run(Kit)`), đặt tên `Video`.
 
 ### Có gì
 - **Hook 3 giây đầu:** mở thẳng vào câu "Mình chia tay đi" → chữ lớn → tên phim → lùi về 3 tiếng trước.

@@ -2,7 +2,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Kit = require(ReplicatedStorage:WaitForChild("PhimKit"))
-local Tap = require(ReplicatedStorage:WaitForChild("Tap1"))
+local Tap = require(ReplicatedStorage:WaitForChild("Video"))
 
 local player = Players.LocalPlayer
 if not player.Character then

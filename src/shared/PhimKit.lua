@@ -1657,7 +1657,7 @@ function Kit._client()
 			local color = SPEAKER_COLOR[a] or "#ffffff"
 			local name = SPEAKER_NAME[a] or a
 			if c == "narration" then
-				sub.Text = string.format('<i><font color="%s">%s</font></i>', color, b)
+				sub.Text = string.format('<b><font color="%s">%s</font></b>', color, b)
 			elseif c == "phone" then
 				sub.Text = string.format('<font color="%s"><b>%s:</b></font> <i>%s</i>', color, name, b)
 			else
