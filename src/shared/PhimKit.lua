@@ -717,21 +717,15 @@ function Kit.actor(name, spec)
 	root.Anchored = true
 
 	-- tấm mặt: mắt / mày / miệng / nốt ruồi / nước mắt (vẽ trên máy người xem)
-	-- Đầu khối vuông (kiểu Roblox cổ điển): mặt vẽ thẳng lên mặt trước của khối nên nhìn nghiêng vẫn dính sát.
-	-- Đầu tròn gốc được ẩn đi (tóc/phụ kiện catalog vẫn bám vào nó như bình thường).
+	-- tấm giữ thông tin khuôn mặt (biểu cảm, hướng nhìn…); mặt 3D được dựng ở máy người xem
 	local plate = Instance.new("Part")
 	plate.Name = "FacePlate"
-	plate.Shape = Enum.PartType.Block
-	plate.Size = Vector3.new(head.Size.X * 0.95, head.Size.Y * 0.98, head.Size.Z * 0.95)
-	plate.Color = hex(spec.skin or "#f0cbb2")
-	plate.Material = Enum.Material.SmoothPlastic
-	plate.TopSurface, plate.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
-	plate.CanCollide, plate.CanQuery, plate.CanTouch, plate.Massless = false, false, false, true
-	plate.CastShadow = false
+	plate.Transparency = 1
+	plate.Size = Vector3.new(0.1, 0.1, 0.1)
+	plate.CanCollide, plate.CanQuery, plate.CanTouch, plate.Massless, plate.CastShadow = false, false, false, true, false
 	plate.CFrame = head.CFrame
 	plate.Parent = model
 	Kit.weld(head, plate)
-	head.Transparency = 1
 	plate:SetAttribute("Expression", "neutral")
 	plate:SetAttribute("Talking", false)
 	plate:SetAttribute("Mole", spec.mole or "")
@@ -1631,177 +1625,176 @@ function Kit._client()
 
 	local faces = {}
 
+	-- KHUÔN MẶT 3D: mắt, mày, mũi, miệng là các khối nhỏ áp sát mặt cong của đầu tròn,
+	-- nên nhìn nghiêng vẫn dính mặt. Toạ độ biểu cảm dùng thang 0..100 như trước.
+	local function ellipsoid(color, parent)
+		local p = Instance.new("Part")
+		p.Anchored = true
+		p.CanCollide, p.CanQuery, p.CanTouch, p.CastShadow = false, false, false, false
+		p.Material = Enum.Material.SmoothPlastic
+		p.Color = color
+		p.Size = Vector3.new(0.1, 0.1, 0.05)
+		local m = Instance.new("SpecialMesh")
+		m.MeshType = Enum.MeshType.Sphere
+		m.Parent = p
+		p.Parent = parent
+		return p
+	end
+	local function slab(color, parent)
+		local p = Instance.new("Part")
+		p.Anchored = true
+		p.CanCollide, p.CanQuery, p.CanTouch, p.CastShadow = false, false, false, false
+		p.Material = Enum.Material.SmoothPlastic
+		p.Color = color
+		p.Size = Vector3.new(0.1, 0.03, 0.03)
+		p.Parent = parent
+		return p
+	end
+
 	local function buildFace(plate)
 		if faces[plate] then
 			return
 		end
-		local oldFace = plate:FindFirstChild("Face")
-		if oldFace then
-			oldFace:Destroy()
+		local model = plate.Parent
+		local head = model and model:FindFirstChild("Head")
+		if not head then
+			return
 		end
-		local g = Instance.new("SurfaceGui")
-		g.Name = "Face"
-		g.Face = Enum.NormalId.Front
-		g.Adornee = plate
-		g.CanvasSize = Vector2.new(200, 200)
-		g.LightInfluence = 0.6
-		g.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
-		g.Parent = plate
-
-		local function el(color, z, radius)
-			local f = Instance.new("Frame")
-			f.BorderSizePixel = 0
-			f.BackgroundColor3 = color
-			f.AnchorPoint = Vector2.new(0.5, 0.5)
-			f.ZIndex = z or 1
-			f.Parent = g
-			local c = Instance.new("UICorner")
-			c.CornerRadius = UDim.new(radius or 1, 0)
-			c.Parent = f
-			return f
+		local old = model:FindFirstChild("Face3D")
+		if old then
+			old:Destroy()
 		end
+		local folder = Instance.new("Folder")
+		folder.Name = "Face3D"
+		folder.Parent = model
 		local function hexOr(attr, default)
-			local v = plate:GetAttribute(attr)
-			local ok, col = pcall(Color3.fromHex, v or "")
+			local ok, col = pcall(Color3.fromHex, plate:GetAttribute(attr) or "")
 			return ok and col or default
 		end
 		local dark = Color3.fromRGB(28, 24, 26)
-		local browColor = hexOr("BrowColor", dark)
 		local skin = hexOr("Skin", Color3.fromRGB(240, 203, 178))
 		local female = plate:GetAttribute("Female") == true
-
-		local f = { plate = plate, cur = table.clone(EXPR.neutral), nextBlink = os.clock() + math.random() * 3, blinkUntil = 0, seed = math.random() * 100 }
-		-- mắt: lòng trắng (viền tối) + tròng màu + con ngươi + điểm sáng; nhắm mắt = lòng trắng dẹt lại
-		local okEye, eyeColor = pcall(Color3.fromHex, plate:GetAttribute("EyeColor") or "")
-		eyeColor = okEye and eyeColor or Color3.fromRGB(58, 36, 24)
-		f.eyeL, f.eyeR = el(Color3.fromRGB(250, 248, 244), 2), el(Color3.fromRGB(250, 248, 244), 2)
-		f.irises = {}
-		for _, eye in ipairs({ f.eyeL, f.eyeR }) do
-			eye.ClipsDescendants = true
-			local stroke = Instance.new("UIStroke")
-			stroke.Color = dark
-			stroke.Thickness = 2
-			stroke.Parent = eye
-			local iris = el(eyeColor, 3)
-			iris.Parent = eye
-			local pupil = el(Color3.fromRGB(12, 10, 10), 4)
-			pupil.Size = UDim2.fromScale(0.5, 0.5)
-			pupil.Position = UDim2.fromScale(0.5, 0.5)
-			pupil.Parent = iris
-			local hl = el(Color3.new(1, 1, 1), 5)
-			hl.Size = UDim2.fromScale(0.32, 0.32)
-			hl.Position = UDim2.fromScale(0.68, 0.3)
-			hl.Parent = iris
-			table.insert(f.irises, iris)
+		local lip = hexOr("Lips", Color3.fromRGB(110, 45, 48))
+		local f = { plate = plate, head = head, folder = folder, cur = table.clone(EXPR.neutral), nextBlink = os.clock() + math.random() * 3, blinkUntil = 0, seed = math.random() * 100, tearProgress = 0 }
+		f.scl = { ellipsoid(Color3.fromRGB(250, 248, 244), folder), ellipsoid(Color3.fromRGB(250, 248, 244), folder) }
+		f.iris = { ellipsoid(hexOr("EyeColor", Color3.fromRGB(58, 36, 24)), folder), ellipsoid(hexOr("EyeColor", Color3.fromRGB(58, 36, 24)), folder) }
+		f.pupil = { ellipsoid(Color3.fromRGB(10, 8, 8), folder), ellipsoid(Color3.fromRGB(10, 8, 8), folder) }
+		f.shine = { ellipsoid(Color3.new(1, 1, 1), folder), ellipsoid(Color3.new(1, 1, 1), folder) }
+		f.lid = { slab(dark, folder), slab(dark, folder) }
+		f.brow = { slab(hexOr("BrowColor", dark), folder), slab(hexOr("BrowColor", dark), folder) }
+		f.nose = ellipsoid(skin:Lerp(Color3.fromRGB(150, 80, 60), 0.3), folder)
+		f.mouth = ellipsoid(Color3.fromRGB(90, 40, 42), folder)
+		f.teeth = ellipsoid(Color3.fromRGB(250, 248, 240), folder)
+		f.lip = { slab(lip, folder), slab(lip, folder) }
+		if (plate:GetAttribute("Lips") or "") == "" then
+			f.lip[1].Transparency, f.lip[2].Transparency = 1, 1
 		end
-		local nose = el(skin:Lerp(Color3.fromRGB(150, 80, 60), 0.35), 1, 0.5)
-		nose.Size = UDim2.fromScale(0.035, 0.05)
-		nose.Position = UDim2.fromScale(0.5, 0.6)
-		nose.BackgroundTransparency = 0.25
-		f.browL, f.browR = el(browColor, 2, 0.5), el(browColor, 2, 0.5)
-		f.mouth = el(Color3.fromRGB(90, 40, 42), 2, 1)
-		f.mouth.ClipsDescendants = true
-		f.teeth = el(Color3.fromRGB(250, 248, 240), 3, 0.3)
-		f.teeth.Size = UDim2.fromScale(0.8, 0.35)
-		f.teeth.Position = UDim2.fromScale(0.5, 0.15)
-		f.teeth.Parent = f.mouth
-		f.cornerL, f.cornerR = el(Color3.fromRGB(90, 40, 42), 2, 1), el(Color3.fromRGB(90, 40, 42), 2, 1)
-		-- nốt ruồi: Nam bên trái mặt, Người Kia bên phải (đối xứng gương)
-		local moleSide = plate:GetAttribute("Mole")
-		if moleSide == "L" or moleSide == "R" then
-			local m = el(Color3.fromRGB(45, 30, 28), 2)
-			m.Size = UDim2.fromScale(0.035, 0.035)
-			m.Position = UDim2.fromScale(moleSide == "L" and 0.71 or 0.29, 0.62)
+		f.corner = { slab(lip, folder), slab(lip, folder) }
+		f.blush = { ellipsoid(skin:Lerp(Color3.fromRGB(235, 120, 120), 0.5), folder), ellipsoid(skin:Lerp(Color3.fromRGB(235, 120, 120), 0.5), folder) }
+		for _, b in ipairs(f.blush) do
+			b.Transparency = female and 0.45 or 0.75
 		end
-		-- má hồng nhẹ
-		for _, x in ipairs({ 0.27, 0.73 }) do
-			local b = el(skin:Lerp(Color3.fromRGB(235, 120, 120), 0.5), 1)
-			b.BackgroundTransparency = female and 0.45 or 0.8
-			b.Size = UDim2.fromScale(0.13, 0.07)
-			b.Position = UDim2.fromScale(x, 0.6)
+		f.tear = { slab(Color3.fromRGB(150, 205, 255), folder), slab(Color3.fromRGB(150, 205, 255), folder) }
+		for _, t in ipairs(f.tear) do
+			t.Material = Enum.Material.Glass
+			t.Transparency = 0.25
 		end
-		local lips = plate:GetAttribute("Lips")
-		if lips and lips ~= "" then
-			local ok, col = pcall(Color3.fromHex, lips)
-			if ok then
-				f.mouth.BackgroundColor3 = col
-				f.cornerL.BackgroundColor3, f.cornerR.BackgroundColor3 = col, col
-			end
+		local mole = plate:GetAttribute("Mole")
+		if mole == "L" or mole == "R" then
+			f.mole = ellipsoid(Color3.fromRGB(45, 30, 28), folder)
+			f.moleX = mole == "L" and 71 or 29
 		end
-		f.tearL, f.tearR = el(Color3.fromRGB(150, 205, 255), 3, 0.5), el(Color3.fromRGB(150, 205, 255), 3, 0.5)
-		f.tearL.BackgroundTransparency, f.tearR.BackgroundTransparency = 0.25, 0.25
-		f.tearProgress = 0
-		if female then -- mi mắt
-			f.lashL, f.lashR = el(dark, 2, 0.5), el(dark, 2, 0.5)
+		if female then
+			f.lash = { slab(dark, folder), slab(dark, folder) }
 		end
 		faces[plate] = f
 		plate.AncestryChanged:Connect(function()
-			if not plate:IsDescendantOf(game) then
+			if not plate:IsDescendantOf(workspace) then
 				faces[plate] = nil
+				folder:Destroy()
 			end
 		end)
-	end
-
-	local function S(x, y)
-		return UDim2.fromScale(x / 100, y / 100)
 	end
 
 	local function updateFaces(dt, now)
 		local k = 1 - math.exp(-14 * dt)
 		for plate, f in pairs(faces) do
-			local target = EXPR[plate:GetAttribute("Expression") or "neutral"] or EXPR.neutral
-			local c = f.cur
-			for _, key in ipairs(KEYS) do
-				c[key] = c[key] + (target[key] - c[key]) * k
-			end
-			if now > f.nextBlink then
-				f.blinkUntil = now + 0.11
-				f.nextBlink = now + 2 + math.random() * 3.5
-			end
-			local gz = plate:GetAttribute("Gaze") or Vector2.zero
-			local eyeH = (now < f.blinkUntil) and 1.2 or c.eyeH
-			local ex, ey = gz.X * 3, c.eyeY + gz.Y * 2
-			local sw = c.eyeW * 1.35
-			f.eyeL.Size, f.eyeR.Size = S(sw, eyeH), S(sw, eyeH)
-			f.eyeL.Position, f.eyeR.Position = S(35, ey), S(65, ey)
-			local irisD = math.min(c.eyeW * 1.0, 13)
-			for _, iris in ipairs(f.irises) do
-				iris.Size = UDim2.fromScale(irisD / sw, irisD / math.max(eyeH, 0.5))
-				iris.Position = UDim2.fromScale(0.5 + gz.X * 0.18, 0.5 + gz.Y * 0.15)
-			end
-			if f.lashL then
-				f.lashL.Size, f.lashR.Size = S(c.eyeW * 0.6, 2), S(c.eyeW * 0.6, 2)
-				f.lashL.Position = S(35 + ex - c.eyeW * 0.4, ey - eyeH / 2)
-				f.lashR.Position = S(65 + ex + c.eyeW * 0.4, ey - eyeH / 2)
-				f.lashL.Rotation, f.lashR.Rotation = -25, 25
-			end
-			f.browL.Size, f.browR.Size = S(14, 3), S(14, 3)
-			f.browL.Position, f.browR.Position = S(35, c.browY), S(65, c.browY)
-			f.browL.Rotation, f.browR.Rotation = c.browAng, -c.browAng
-
-			local mh, mw = c.mouthH, c.mouthW
-			if plate:GetAttribute("Talking") then
-				mh = mh + 7 * math.abs(math.noise(now * 9, f.seed))
-				mw = mw - 2
-			end
-			local tearsOn = plate:GetAttribute("Tears") == true
-			f.tearProgress = math.clamp(f.tearProgress + (tearsOn and dt * 0.5 or -dt * 2), 0, 1)
-			local tl = 14 * f.tearProgress
-			f.tearL.Visible, f.tearR.Visible = tl > 0.5, tl > 0.5
-			f.tearL.Size, f.tearR.Size = S(2.4, tl), S(2.4, tl)
-			f.tearL.Position = S(33 + ex, ey + eyeH / 2 + tl / 2)
-			f.tearR.Position = S(67 + ex, ey + eyeH / 2 + tl / 2)
-			f.mouth.Size = S(mw, mh)
-			f.teeth.Visible = mh > 5
-			f.mouth.Position = S(50, c.mouthY)
-			local sm = c.smile
-			local show = math.abs(sm) > 0.08
-			f.cornerL.Visible, f.cornerR.Visible = show, show
-			if show then
-				f.cornerL.Size, f.cornerR.Size = S(6, 2.6), S(6, 2.6)
-				f.cornerL.Position = S(50 - mw / 2 - 1.5, c.mouthY - sm * 2)
-				f.cornerR.Position = S(50 + mw / 2 + 1.5, c.mouthY - sm * 2)
-				f.cornerL.Rotation, f.cornerR.Rotation = sm * 35, -sm * 35
+			local head = f.head
+			if plate.Parent and plate.Parent.Parent ~= nil then
+				local target = EXPR[plate:GetAttribute("Expression") or "neutral"] or EXPR.neutral
+				local c = f.cur
+				for _, key in ipairs(KEYS) do
+					c[key] = c[key] + (target[key] - c[key]) * k
+				end
+				if now > f.nextBlink then
+					f.blinkUntil = now + 0.11
+					f.nextBlink = now + 2 + math.random() * 3.5
+				end
+				local hs = head.Size
+				local F = math.min(hs.X, hs.Y) * 0.92 -- bề rộng vùng mặt (stud)
+				local r = math.min(hs.X, hs.Z) * 0.5
+				local hcf = head.CFrame
+				-- đặt một chi tiết lên mặt cầu của đầu: (x, y) thang 0..100, kích thước (w, h) thang 0..100
+				local function place(p, x, y, w, h, depth, lift, rot)
+					local u = (x - 50) / 100 * F
+					local v = -(y - 50) / 100 * F * 1.05
+					local zz = math.sqrt(math.max(0.01, r * r - u * u * 0.85 - v * v * 0.7))
+					local n = Vector3.new(u, v, -zz).Unit
+					local pos = Vector3.new(u, v, 0) + Vector3.new(0, 0, -zz) + n * (lift or 0.01)
+					local lcf = CFrame.lookAt(pos, pos + n) * CFrame.Angles(0, 0, math.rad(rot or 0))
+					p.Size = Vector3.new(math.max(0.01, w / 100 * F), math.max(0.01, h / 100 * F), depth or 0.04)
+					p.CFrame = hcf * lcf
+				end
+				local gz = plate:GetAttribute("Gaze") or Vector2.zero
+				local eyeH = (now < f.blinkUntil) and 1.2 or c.eyeH
+				local sw = c.eyeW * 1.3
+				local irisD = math.min(c.eyeW, 13)
+				for i, ex in ipairs({ 35, 65 }) do
+					local open = eyeH > 2.5
+					place(f.scl[i], ex, c.eyeY, sw, eyeH, 0.05, 0.005)
+					f.scl[i].Transparency = open and 0 or 1
+					local ix, iy = ex + gz.X * 2.5, c.eyeY + gz.Y * 1.5
+					local ih = math.min(irisD, eyeH)
+					place(f.iris[i], ix, iy, irisD, ih, 0.05, 0.02)
+					place(f.pupil[i], ix, iy, irisD * 0.5, ih * 0.5, 0.05, 0.03)
+					place(f.shine[i], ix + irisD * 0.18, iy - ih * 0.2, irisD * 0.28, ih * 0.28, 0.05, 0.04)
+					f.iris[i].Transparency = open and 0 or 1
+					f.pupil[i].Transparency = open and 0 or 1
+					f.shine[i].Transparency = open and 0 or 1
+					-- mí trên (nhắm mắt = một nét)
+					place(f.lid[i], ex, c.eyeY - eyeH / 2, sw * 1.05, 1.8, 0.04, 0.035)
+					if f.lash then
+						place(f.lash[i], ex + (i == 1 and -1 or 1) * sw * 0.55, c.eyeY - eyeH / 2, sw * 0.35, 1.4, 0.03, 0.035, i == 1 and -25 or 25)
+					end
+					place(f.brow[i], ex, c.browY, 15, 3, 0.05, 0.02, (i == 1 and 1 or -1) * c.browAng)
+					place(f.blush[i], ex + (i == 1 and -5 or 5), 61, 12, 6, 0.03, 0.005)
+				end
+				place(f.nose, 50, 59, 5, 6, 0.08, 0.01)
+				local mh, mw = c.mouthH, c.mouthW
+				if plate:GetAttribute("Talking") then
+					mh = mh + 7 * math.abs(math.noise(now * 9, f.seed))
+					mw = mw - 2
+				end
+				place(f.mouth, 50, c.mouthY, mw, mh, 0.05, 0.01)
+				f.teeth.Transparency = mh > 5 and 0 or 1
+				place(f.teeth, 50, c.mouthY - mh * 0.28, mw * 0.75, mh * 0.3, 0.05, 0.02)
+				place(f.lip[1], 50, c.mouthY - mh / 2, mw, 1.4, 0.04, 0.02)
+				place(f.lip[2], 50, c.mouthY + mh / 2, mw * 0.8, 1.6, 0.04, 0.02)
+				local sm = c.smile
+				for i, sx in ipairs({ -1, 1 }) do
+					f.corner[i].Transparency = math.abs(sm) > 0.08 and 0 or 1
+					place(f.corner[i], 50 + sx * (mw / 2 + 1.5), c.mouthY - sm * 2, 6, 2.2, 0.04, 0.02, sx * -sm * 35)
+				end
+				local tearsOn = plate:GetAttribute("Tears") == true
+				f.tearProgress = math.clamp(f.tearProgress + (tearsOn and dt * 0.5 or -dt * 2), 0, 1)
+				local tl = 14 * f.tearProgress
+				for i, ex in ipairs({ 33, 67 }) do
+					f.tear[i].Transparency = tl > 0.5 and 0.25 or 1
+					place(f.tear[i], ex, c.eyeY + eyeH / 2 + tl / 2, 2.2, math.max(tl, 0.5), 0.03, 0.03)
+				end
+				if f.mole then
+					place(f.mole, f.moleX, 62, 3, 3, 0.03, 0.01)
+				end
 			end
 		end
 	end
