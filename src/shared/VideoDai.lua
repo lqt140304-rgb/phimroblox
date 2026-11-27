@@ -191,7 +191,7 @@ function VD.run(Kit)
 	------------------------------------------------------------------ LỜI KỂ
 	local function L(ch, i, action)
 		local d = NARR[ch][i]
-		if d.big ~= "" then
+		if d.big ~= "" and not d.noBig then
 			task.delay(0.5, fx, "big", d.big, math.min(d.dur, 3))
 		end
 		ctx.beat(d.text, d.dur, action)
@@ -914,6 +914,7 @@ function VD.run(Kit)
 		L(1, 3, function()
 			Kit.tw(sky(), 5, { MoonAngularSize = 5 })
 		end)
+		NARR[1][4].noBig = true -- tên video đã hiện bằng "title", không hiện thêm chữ lớn
 		fx("title", "NẾU TRỌNG LỰC GIẢM MỘT NỬA", "7 ngày · What if?")
 		L(1, 4)
 		sky().MoonAngularSize = 11

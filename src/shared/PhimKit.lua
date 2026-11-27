@@ -1733,7 +1733,7 @@ function Kit._client()
 		end
 
 		-- máy tự tiến rất chậm vào chủ thể (cảm giác điện ảnh)
-		local drift = spec.drift == nil and 0.06 or spec.drift
+		local drift = spec.drift == nil and 0.03 or spec.drift
 		local camPos = st.pos
 		if drift > 0 then
 			local prog = math.clamp((now - st.t0) / 7, 0, 1)
@@ -1797,7 +1797,8 @@ function Kit._client()
 			dof.FarIntensity = dofAmt
 			dof.NearIntensity = spec.near or dofAmt * 0.6
 			dof.InFocusRadius = spec.focusRadius or math.max(4, (st.look - camPos).Magnitude * 0.4)
-			dof.FocusDistance = (st.look - camPos).Magnitude
+			local fd = (st.look - camPos).Magnitude
+			dof.FocusDistance = dof.FocusDistance + (fd - dof.FocusDistance) * math.min(1, dt * 4)
 		else
 			dof.Enabled = false
 		end
