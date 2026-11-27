@@ -148,7 +148,14 @@ function Kit.box(name, size, pos, color, material, extra)
 			props[k] = v
 		end
 	end
-	return Kit.part(props)
+	local p = Kit.part(props)
+	-- chống nhấp nháy (z-fighting): mảnh phẳng mỏng (vạch kẻ, ron gạch, thảm…) nâng hẳn lên khỏi mặt nền
+	-- và không đổ bóng
+	if p.Size.Y <= 0.12 and not (extra and extra.NoLift) then
+		p.CFrame = p.CFrame + Vector3.new(0, 0.05, 0)
+		p.CastShadow = false
+	end
+	return p
 end
 
 function Kit.ball(name, d, pos, color, material, extra)
@@ -261,8 +268,8 @@ end
 -- Mỗi "look" = một bảng màu thống nhất: ánh trời (ColorShift), ánh nền, sương theo khoảng cách (tạo chiều sâu),
 -- chỉnh màu điện ảnh (ấm ở vùng sáng, lạnh ở vùng tối) và bật/tắt đèn thật trong cảnh.
 local LOOKS = {
-	morning = { ClockTime = 7.6, Brightness = 2.1, Ambient = "#3a3840", Outdoor = "#8a8fa0", Top = "#ffd9a8", Bottom = "#6a7890", Exposure = -0.25, Density = 0.32, Offset = 0.3, Haze = 1.9, AtmColor = "#f4dcc0", Decay = "#9aa6c0", Glare = 0.35, Tint = "#fff0e0", Sat = 0.12, Contrast = 0.18, Rays = 0.08, Shadow = 0.18, Night = false },
-	afternoon = { ClockTime = 16.4, Brightness = 2.0, Ambient = "#3c3634", Outdoor = "#8a8078", Top = "#ffc890", Bottom = "#6a7080", Exposure = -0.3, Density = 0.34, Offset = 0.3, Haze = 2.1, AtmColor = "#f0d0a8", Decay = "#8a90a8", Glare = 0.45, Tint = "#ffe8d0", Sat = 0.14, Contrast = 0.2, Rays = 0.1, Shadow = 0.18, Night = false },
+	morning = { ClockTime = 7.6, Brightness = 2.1, Ambient = "#3a3840", Outdoor = "#8a8fa0", Top = "#ffd9a8", Bottom = "#6a7890", Exposure = -0.25, Density = 0.32, Offset = 0.3, Haze = 1.9, AtmColor = "#f4dcc0", Decay = "#9aa6c0", Glare = 0.35, Tint = "#fff0e0", Sat = 0.12, Contrast = 0.18, Rays = 0.08, Shadow = 0.4, Night = false },
+	afternoon = { ClockTime = 16.4, Brightness = 2.0, Ambient = "#3c3634", Outdoor = "#8a8078", Top = "#ffc890", Bottom = "#6a7080", Exposure = -0.3, Density = 0.34, Offset = 0.3, Haze = 2.1, AtmColor = "#f0d0a8", Decay = "#8a90a8", Glare = 0.45, Tint = "#ffe8d0", Sat = 0.14, Contrast = 0.2, Rays = 0.1, Shadow = 0.4, Night = false },
 	rain = { ClockTime = 17.2, Brightness = 0.9, Ambient = "#30343e", Outdoor = "#5a6272", Top = "#c8d4e8", Bottom = "#40485a", Exposure = -0.1, Density = 0.45, Offset = 0.15, Haze = 2.6, AtmColor = "#a4b0c2", Decay = "#5a6478", Glare = 0, Tint = "#dce4f4", Sat = -0.08, Contrast = 0.18, Rays = 0, Shadow = 0.6, Night = true },
 	night = { ClockTime = 22.5, Brightness = 0.35, Ambient = "#1c2030", Outdoor = "#2a3048", Top = "#9aa8d8", Bottom = "#2a1e18", Exposure = 0.2, Density = 0.3, Offset = 0.2, Haze = 1.2, AtmColor = "#4a5478", Decay = "#141828", Glare = 0, Tint = "#e2e4ff", Sat = 0.05, Contrast = 0.22, Rays = 0, Shadow = 0.4, Night = true },
 }
@@ -275,6 +282,14 @@ function Kit.practical(parent, className, props, mode)
 	local l = Instance.new(className)
 	for k, v in pairs(props or {}) do
 		l[k] = v
+	end
+	-- giới hạn số đèn đổ bóng: quá nhiều đèn có bóng khiến Roblox bật/tắt bóng liên tục (nhấp nháy)
+	Kit._shadowLights = (Kit._shadowLights or 0)
+	if l.Shadows then
+		Kit._shadowLights += 1
+		if Kit._shadowLights > 6 then
+			l.Shadows = false
+		end
 	end
 	l.Parent = parent
 	table.insert(Kit._practicals, { light = l, mode = mode or "night" })

@@ -24,7 +24,7 @@ local MUSIC_ID = 0 -- nhạc nền kiểu khoa học/hồi hộp
 local CAST = {
 	Ban = { catalog = { HairAccessory = "7259123616", Shirt = 398633584, Pants = 382538503 },  skin = "#efc8a8", hair = "curtain", hairColor = "#1e1a18", height = 1.02, outfit = { top = "hoodie", sleeves = "long", topColor = "#3b6ea5", bottom = "jeans", bottomColor = "#2f3a4a", shoes = "#f2f2f2", acc = { "backpack" } } },
 	Linh = { catalog = { HairAccessory = "2956239660", Shirt = 398635081, Pants = 144076512 },  skin = "#f4d5c0", hair = "bob", hairColor = "#3a241a", female = true, lips = "#c06a6a", height = 0.93, outfit = "linh_ao_bo" },
-	Tuan = { catalog = { HairAccessory = "5644883846", Pants = 9112492265 },  skin = "#c98e68", hair = "spiky", hairColor = "#161412", height = 1.12, width = 1.1, outfit = { top = "tee", sleeves = "short", topColor = "#c8322f", bottom = "shorts", bottomColor = "#1d1d22", shoes = "#f2f2f2", acc = { "watch" } } },
+	Tuan = { catalog = { HairAccessory = "5644883846" },  skin = "#c98e68", hair = "spiky", hairColor = "#161412", height = 1.12, width = 1.1, outfit = { top = "tee", sleeves = "short", topColor = "#c8322f", bottom = "shorts", bottomColor = "#1d1d22", shoes = "#f2f2f2", acc = { "watch" } } },
 	CoBanMi = { skin = "#d8a280", hair = "bun", hairColor = "#2a2626", female = true, height = 0.88, width = 0.98, proportion = 0.2, outfit = { top = "baba", sleeves = "long", topColor = "#6f8a6a", bottom = "pants", bottomColor = "#1e1f22", shoes = "#e8e4dc", acc = { "apron" } } },
 	KhachA = { catalog = { HairAccessory = "376526888" },  skin = "#f0cfb8", hair = "ponytail", hairColor = "#4a2e22", female = true, lips = "#c07070", height = 0.95, outfit = "an_cardigan" },
 	KhachB = { catalog = { HairAccessory = "63690008" },  skin = "#dcae8a", hair = "short", hairColor = "#1e1a18", height = 1.0, width = 1.08, outfit = "minh_ao_phong" },
@@ -214,7 +214,7 @@ function Video.run(Kit)
 			box("LampPole", Vector3.new(0.4, 12, 0.4), P(x, 6, -28.5), "#2b2b2b", Enum.Material.Metal)
 			box("LampArm", Vector3.new(0.25, 0.25, 2.4), P(x, 11.9, -29.6), "#2b2b2b", Enum.Material.Metal)
 			local head = box("LampHead", Vector3.new(0.8, 0.3, 1.4), P(x, 11.7, -30.6), "#fff2d0", Enum.Material.Neon)
-			Kit.practical(head, "SpotLight", { Face = Enum.NormalId.Bottom, Angle = 100, Range = 24, Brightness = 2.2, Color = Color3.fromRGB(255, 205, 150), Shadows = true })
+			Kit.practical(head, "SpotLight", { Face = Enum.NormalId.Bottom, Angle = 100, Range = 24, Brightness = 2.2, Color = Color3.fromRGB(255, 205, 150), Shadows = false })
 		end
 		cyl("Bin", 1.6, 1.1, P(x + 3, 0.8, -28.5), "#2f7a4a", Enum.Material.Metal)
 		for k = -1, 1 do
