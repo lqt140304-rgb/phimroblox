@@ -33,6 +33,13 @@ local CAST = {
 }
 Video.CAST = CAST
 
+function Video.build(Kit)
+	Video._buildOnly = true
+	local ctx = Video.run(Kit)
+	Video._buildOnly = false
+	return ctx
+end
+
 function Video.run(Kit)
 	local box, ball, cyl, weld, sign, light = Kit.box, Kit.ball, Kit.cyl, Kit.weld, Kit.sign, Kit.light
 	local rad = math.rad
@@ -450,7 +457,7 @@ function Video.run(Kit)
 
 	------------------------------------------------------------------ DIỄN VIÊN
 	local A = {}
-	for name, spec in pairs(CAST) do
+	for name, spec in pairs(Video.CAST_OVERRIDE or CAST) do
 		A[name] = Kit.actor(name, spec)
 	end
 	local Ban, Linh, Tuan, CoBanMi = A.Ban, A.Linh, A.Tuan, A.CoBanMi
@@ -500,6 +507,17 @@ function Video.run(Kit)
 		for _, a in ipairs(crowd) do
 			Kit.expr(a, "happy")
 		end
+	end
+
+	-- dùng lại cho bản dài (VideoDai): trả về bộ công cụ, không diễn bản Short
+	if Video._buildOnly then
+		return {
+			P = P, A = A, Ban = Ban, Linh = Linh, Tuan = Tuan, CoBanMi = CoBanMi, crowd = crowd,
+			jump = jump, setGravity = setGravity, beat = beat, placeCrowd = placeCrowd,
+			car = car, label = label, moveModel = moveModel, carA = carA, carB = carB,
+			thermo = thermo, jet = jet, playId = playId, wedge = wedge, oldGravity = oldGravity,
+			motorbike = motorbike, tree = tree,
+		}
 	end
 
 	------------------------------------------------------------------ VIDEO

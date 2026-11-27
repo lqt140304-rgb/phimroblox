@@ -4,7 +4,8 @@
     "$className": "DataModel",
     "ReplicatedStorage": {
       "PhimKit": { "$path": "src/shared/PhimKit.lua" },
-      "Video": { "$path": "src/shared/Video.lua" }
+      "Video": { "$path": "src/shared/Video.lua" },
+      "VideoDai": { "$path": "src/shared/VideoDai.lua" }
     },
     "ServerScriptService": { "Phim_Server": { "$path": "src/server/Phim_Server.server.lua" } },
     "StarterPlayer": {
